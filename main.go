@@ -1,20 +1,20 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"log"
 )
 
 var (
-	userName = flag.String("username", "", "Username override")
+	username = flag.String("username", "", "Username override")
 )
 
 var (
 	configName = "config"
 	defaults   = map[string]interface{}{
-		"userName": "testuser-1",
+		"username": "default-user",
 	}
 	configPaths = []string{
 		// Lookup is done in the same order we add the paths.
@@ -42,7 +42,7 @@ func configureViper() {
 	if err != nil {
 		panic(fmt.Errorf("Can't read config file: %v \n", err))
 	}
-
+	viper.BindPFlags(flag.CommandLine)
 }
 
 func main() {
@@ -50,7 +50,9 @@ func main() {
 	flag.Parse()
 
 	configureViper()
-	//fmt.Printf("From viper: %v\n", viper.GetString("common.clustername"))
+
+	fmt.Printf("From viper: %v\n", viper.GetString("username"))
+
 	var config Config
 	err := viper.Unmarshal(&config)
 	if err != nil {
