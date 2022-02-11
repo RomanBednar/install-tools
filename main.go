@@ -51,13 +51,13 @@ func main() {
 
 	configureViper()
 
-	fmt.Printf("From viper: %v\n", viper.GetString("username"))
+	//fmt.Printf("From viper: %v\n", viper.GetString("username"))
 
 	var config Config
 	err := viper.Unmarshal(&config)
 	if err != nil {
 		log.Fatalf("Could not unmarshal config to struct: %v", err)
 	}
-	fmt.Printf("config from struct: %v", config)
+	//fmt.Printf("config from struct: %v", config)
 
 }
