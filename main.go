@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/RomanBednar/install-tools/clouds/aws"
+	"github.com/RomanBednar/install-tools/utils"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"log"
@@ -14,7 +16,8 @@ var (
 var (
 	configName = "config"
 	defaults   = map[string]interface{}{
-		"username": "default-user",
+		"userName":  "default-user",
+		"outputDir": "./output",
 	}
 	configPaths = []string{
 		// First path in this slice has the highest priority.
@@ -22,14 +25,6 @@ var (
 		"./config",
 	}
 )
-
-type Config struct {
-	SshPublicKeyFile string
-	PullSecretFile   string
-	ClusterName      string
-	Username         string
-	Password         string
-}
 
 func configureViper() {
 	viper.SetConfigName(configName)
@@ -58,11 +53,12 @@ func main() {
 	fmt.Printf("From viper: %v\n", viper.GetString("username"))
 	fmt.Printf("From viper: %v\n", viper.AllSettings())
 
-	var config Config
+	var config utils.Config
 	err := viper.Unmarshal(&config)
 	if err != nil {
 		log.Fatalf("Could not unmarshal config to struct: %v", err)
 	}
-	fmt.Printf("config from struct: %v", config)
+	fmt.Printf("config from struct: %v\n", config)
 
+	aws.ParseTemplate(config)
 }

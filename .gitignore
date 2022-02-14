@@ -13,3 +13,6 @@
 
 # Build output directory
 ./bin
+
+# Possible output dir for this tool
+./output

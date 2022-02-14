@@ -14,7 +14,7 @@ controlPlane:
   replicas: 3
 metadata:
   creationTimestamp: null
-  name: {{ cluserName }}
+  name: {{ .ClusterName }}
 networking:
   clusterNetwork:
   - cidr: 10.128.0.0/14
@@ -28,6 +28,6 @@ platform:
   aws:
     region: us-east-1
 publish: External
-pullSecret: '{{ pullSecret }}'
+pullSecret: {{ .PullSecretFile }}
 sshKey: |
-    {{ sshPublicKey }}
+    {{ .SshPublicKeyFile }}
