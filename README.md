@@ -1,3 +1,10 @@
+#How to use this tool#
+
+1. Configure desired values. The priority order is following:
+   * defaults in the code - do not use these for custom settings, they're used for some reasonable defaults
+   * config files - two locations are searched (./config and ~/.install-tools) for a file named "config.toml" the one in homedir has higher priority
+   * command line arguments - these have the highest priority
+
 #Obtaining pull secrets#
 
 1. Visit installer web page
