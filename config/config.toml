@@ -1,6 +1,6 @@
 #EXAMPLE CONFIG FILE
 
-sshPublicKeyFile = "~/.ssh/id_rsa.pub"
+sshPublicKeyFile = "/home/rbednar/.ssh/id_rsa.pub"
 pullSecretFile = "./tmp/pull_secret.json"
 clusterName = "mycluster-01"
 userName = "jon-doe"
