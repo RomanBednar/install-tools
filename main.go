@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/RomanBednar/install-tools/clouds/aws"
 	"github.com/RomanBednar/install-tools/utils"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -11,6 +10,7 @@ import (
 
 var (
 	username = flag.String("username", "", "Username override")
+	cloud    = flag.String("cloud", "", "Which cloud to use.")
 )
 
 var (
@@ -50,15 +50,18 @@ func main() {
 
 	configureViper()
 
-	fmt.Printf("From viper: %v\n", viper.GetString("username"))
-	fmt.Printf("From viper: %v\n", viper.AllSettings())
+	//fmt.Printf("From viper: %v\n", viper.GetString("username"))
+	//fmt.Printf("From viper: %v\n", viper.AllSettings())
 
+	// Get config struct and unmarshal viper config to it.
 	var config utils.Config
 	err := viper.Unmarshal(&config)
 	if err != nil {
 		log.Fatalf("Could not unmarshal config to struct: %v", err)
 	}
-	fmt.Printf("config from struct: %v\n", config)
 
-	aws.ParseTemplate(config)
+	//fmt.Printf("config from struct: %v\n", config)
+
+	parser := utils.NewTemplateParser(*cloud, config)
+	parser.ParseTemplate()
 }
