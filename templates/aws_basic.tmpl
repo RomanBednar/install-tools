@@ -28,6 +28,6 @@ platform:
   aws:
     region: us-east-1
 publish: External
-pullSecret: {{ .PullSecretFile }}
+pullSecret: '{{ .PullSecret }}'
 sshKey: |
     {{ .SshPublicKey }}

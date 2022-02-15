@@ -1,7 +1,7 @@
 #EXAMPLE CONFIG FILE
 
 sshPublicKeyFile = "/home/rbednar/.ssh/id_rsa.pub"
-pullSecretFile = "./tmp/pull_secret.json"
+pullSecretFile = "/tmp/pull_secret.json"
 clusterName = "mycluster-01"
 userName = "jon-doe"
 outputDir = "./output"

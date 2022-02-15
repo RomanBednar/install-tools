@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/manifoldco/promptui"
 	"io/ioutil"
@@ -49,7 +51,8 @@ func NewTemplateParser(requestedCloud string, data Config) TemplateParser {
 	templateParser.data = data
 
 	//Flip file paths to string.
-	templateParser.data.SshPublicKey = templateParser.fileToString(data.SshPublicKeyFile)
+	templateParser.data.SshPublicKey = templateParser.fileToString(data.SshPublicKeyFile, false)
+	templateParser.data.PullSecret = templateParser.fileToString(data.PullSecretFile, true)
 
 	//Base directory for templates.
 	templateParser.templateDir = "templates/"
@@ -87,10 +90,18 @@ func (t *TemplateParser) getSupportedClouds() []string {
 	return keys
 }
 
-func (t *TemplateParser) fileToString(file string) string {
+func (t *TemplateParser) fileToString(file string, compact bool) string {
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if compact {
+		buffer := new(bytes.Buffer)
+		if err := json.Compact(buffer, content); err != nil {
+			fmt.Println(err)
+		}
+		return buffer.String()
 	}
 
 	return string(content)
@@ -105,7 +116,6 @@ func (t *TemplateParser) ParseTemplate() {
 	template := template.Must(template.New(templateName).ParseFiles(templatePath))
 
 	output := t.data.OutputDir + "/" + t.outputFile
-	//TODO: check file presence, overwrite?
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		fmt.Printf("Output file %v already exists, overwrite?\n", output)
 		if !yesNo() {
