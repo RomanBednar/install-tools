@@ -1,14 +1,25 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
-	"io/fs"
+	"github.com/manifoldco/promptui"
 	"io/ioutil"
 	"log"
 	"os"
 	"text/template"
 )
+
+func yesNo() bool {
+	prompt := promptui.Select{
+		Label: "Select[Yes/No]",
+		Items: []string{"Yes", "No"},
+	}
+	_, result, err := prompt.Run()
+	if err != nil {
+		log.Fatalf("Prompt failed %v\n", err)
+	}
+	return result == "Yes"
+}
 
 //All configuration is loaded into this structure and then used to parse templates.
 type Config struct {
@@ -93,15 +104,21 @@ func (t *TemplateParser) ParseTemplate() {
 
 	template := template.Must(template.New(templateName).ParseFiles(templatePath))
 
+	output := t.data.OutputDir + "/" + t.outputFile
+	//TODO: check file presence, overwrite?
+	if _, err := os.Stat(output); !os.IsNotExist(err) {
+		fmt.Printf("Output file %v already exists, overwrite?\n", output)
+		if !yesNo() {
+			log.Fatalf("Aborting.")
+		}
+	}
+
 	err := os.Mkdir(t.data.OutputDir, 0755)
-	if err != nil && !errors.Is(err, fs.ErrExist) {
+	if os.IsNotExist(err) {
 		panic(fmt.Errorf("Could not create output dir: %v Error: %v", t.data.OutputDir, err))
 	}
 
-	output := t.data.OutputDir + "/" + t.outputFile
-	//TODO: check file presence, overwrite?
-
-	f, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	f, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
 		panic(err)
 	}
