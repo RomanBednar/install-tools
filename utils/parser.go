@@ -28,7 +28,7 @@ type Config struct {
 	SshPublicKeyFile string
 	PullSecretFile   string
 	ClusterName      string
-	Username         string
+	UserName         string
 	Password         string
 	OutputDir        string
 
@@ -99,7 +99,7 @@ func (t *TemplateParser) fileToString(file string, compact bool) string {
 	if compact {
 		buffer := new(bytes.Buffer)
 		if err := json.Compact(buffer, content); err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		return buffer.String()
 	}
@@ -111,13 +111,13 @@ func (t *TemplateParser) fileToString(file string, compact bool) string {
 func (t *TemplateParser) ParseTemplate() {
 	templatePath := t.getTemplatePath(t.requestedCloud)
 	templateName := t.getTemplateName(t.requestedCloud)
-	fmt.Printf("Using template: %v with data: %+v\n", templatePath, t.data)
+	log.Printf("Using template: %v with data: %+v\n", templatePath, t.data)
 
 	template := template.Must(template.New(templateName).ParseFiles(templatePath))
 
 	output := t.data.OutputDir + "/" + t.outputFile
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
-		fmt.Printf("Output file %v already exists, overwrite?\n", output)
+		log.Printf("Output file %v already exists, overwrite?\n", output)
 		if !yesNo() {
 			log.Fatalf("Aborting.")
 		}

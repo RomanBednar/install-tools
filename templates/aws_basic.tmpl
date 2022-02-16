@@ -14,7 +14,7 @@ controlPlane:
   replicas: 3
 metadata:
   creationTimestamp: null
-  name: {{ .ClusterName }}
+  name: {{ .UserName }}-{{ .ClusterName }}
 networking:
   clusterNetwork:
   - cidr: 10.128.0.0/14
