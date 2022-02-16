@@ -79,9 +79,13 @@ func main() {
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 
 	// Extract tools from image.
-	utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
+	//utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
 
 	//Test
+	//testvar := utils.GetCcoImageDigest(config.PullSecretFile, config.OutputDir, *image)
+	//log.Fatalf(testvar)
+	//utils.ExtractCcoctl(config.PullSecretFile, config.OutputDir, *image)
+	//
 
 	// Parse template.
 	parser := utils.NewTemplateParser(*cloud, config)
