@@ -78,18 +78,10 @@ func main() {
 
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 
-	// Extract tools from image.
-	//utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
-
-	//Test
-	//log.Fatalf(testvar)
-	//utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
-	//tars := utils.FindTarballs(config.OutputDir)
-	utils.Unarchive(config.OutputDir, config.OutputDir)
-
-	//
-
 	// Parse template.
-	//parser := utils.NewTemplateParser(*cloud, config)
-	//parser.ParseTemplate()
+	parser := utils.NewTemplateParser(*cloud, config)
+	parser.ParseTemplate()
+
+	utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
+	utils.Unarchive(config.OutputDir, config.OutputDir)
 }

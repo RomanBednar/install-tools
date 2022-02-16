@@ -123,6 +123,7 @@ func (t *TemplateParser) ParseTemplate() {
 		}
 	}
 
+	//TODO: this probably should not be here
 	err := os.Mkdir(t.data.OutputDir, 0755)
 	if os.IsNotExist(err) {
 		panic(fmt.Errorf("Could not create output dir: %v Error: %v", t.data.OutputDir, err))
