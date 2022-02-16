@@ -5,5 +5,5 @@ sshPublicKeyFile = "/home/rbednar/.ssh/id_rsa.pub"
 pullSecretFile = "/tmp/config.json"
 
 clusterName = "mycluster-01"
-userName = "jon-doe"
+userName = "rbednar"
 outputDir = "./output"

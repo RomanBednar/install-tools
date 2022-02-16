@@ -82,12 +82,14 @@ func main() {
 	//utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
 
 	//Test
-	//testvar := utils.GetCcoImageDigest(config.PullSecretFile, config.OutputDir, *image)
 	//log.Fatalf(testvar)
-	//utils.ExtractCcoctl(config.PullSecretFile, config.OutputDir, *image)
+	//utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
+	//tars := utils.FindTarballs(config.OutputDir)
+	utils.Unarchive(config.OutputDir, config.OutputDir)
+
 	//
 
 	// Parse template.
-	parser := utils.NewTemplateParser(*cloud, config)
-	parser.ParseTemplate()
+	//parser := utils.NewTemplateParser(*cloud, config)
+	//parser.ParseTemplate()
 }

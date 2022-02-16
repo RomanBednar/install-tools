@@ -1,10 +1,42 @@
 package utils
 
 import (
+	"bytes"
+	"context"
+	"github.com/codeclysm/extract"
+	"io/ioutil"
 	"log"
 	"os/exec"
 	"strings"
 )
+
+func findTarballs(outputDir string) []string {
+	baseCmd := "find"
+	args := []string{outputDir, "-name", "*.tar.*"}
+	cmd := exec.Command(baseCmd, args...)
+	//cmd.Dir = outputDir
+	log.Printf("Looking up tarballs in : %v", outputDir)
+
+	log.Printf("Running command: %v", cmd)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("Command failed: %s\n%v", out, err)
+	}
+	log.Printf("Command result:\n%s", out)
+
+	return strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+}
+
+func Unarchive(outputDir, targetDir string) {
+	tarballs := findTarballs(outputDir)
+	for _, tarball := range tarballs {
+		log.Printf("Extracting: %v", tarball)
+		data, _ := ioutil.ReadFile(tarball)
+		buffer := bytes.NewBuffer(data)
+		extract.Gz(context.TODO(), buffer, targetDir, nil)
+	}
+	//TODO: handle errors
+}
 
 func ExtractTools(pullSecretFile string, outputDir string, imageUrl string) {
 	baseCmd := "oc"
