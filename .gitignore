@@ -15,4 +15,4 @@
 bin
 
 # Possible output dir for this tool
-./output
+output
