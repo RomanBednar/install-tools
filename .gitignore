@@ -16,3 +16,6 @@ bin
 
 # Possible output dir for this tool
 output
+
+# Example config dir
+config

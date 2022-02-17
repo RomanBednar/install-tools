@@ -14,8 +14,9 @@ var (
 	image = flag.String("image", "", "Required - URL of the desired image.")
 
 	//Possible overrides of config values.
-	userName  = flag.String("username", "", "userName override.")
-	outputDir = flag.String("outputdir", "", "outputDir override.")
+	userName       = flag.String("username", "", "userName override.")
+	vmwarePassword = flag.String("vmwarepassword", "", "vmwarePassword override.")
+	outputDir      = flag.String("outputdir", "", "outputDir override.")
 
 	// Flow control flags.
 	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
@@ -86,6 +87,7 @@ func main() {
 
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 
+	//TODO: flows need to move to cloud specific modules
 	// Parse template.
 	parser := utils.NewTemplateParser(*cloud, config)
 	parser.ParseTemplate()
