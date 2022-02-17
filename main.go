@@ -10,11 +10,16 @@ import (
 
 var (
 	//Required flags.
-	cloud = flag.String("cloud", "", "Which cloud to use.")
-	image = flag.String("image", "", "URL of the desired image.")
+	cloud = flag.String("cloud", "", "Required - cloud provider to use.") //TODO: load possible values from cloudTemplatesMap
+	image = flag.String("image", "", "Required - URL of the desired image.")
 
 	//Possible overrides of config values.
-	username = flag.String("username", "", "Username override.")
+	username  = flag.String("username", "", "userName override.")
+	outputDir = flag.String("output", "", "outputDir override.")
+
+	// Flow control flags.
+	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
+	dryRun = flag.Bool("dryrun", false, "Prepare installation files only.")
 )
 
 var (
@@ -82,6 +87,22 @@ func main() {
 	parser := utils.NewTemplateParser(*cloud, config)
 	parser.ParseTemplate()
 
+	// Extract and unarchive tools from image
 	utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
 	utils.Unarchive(config.OutputDir, config.OutputDir)
+
+	if *dryRun {
+		log.Printf("Done.")
+		return
+	}
+
+	switch *action {
+	case "create":
+		utils.InstallCluster(config.OutputDir, true)
+	case "destroy":
+		utils.DestroyCluster(config.OutputDir, true)
+	default:
+		log.Fatalf("Unkown action: %v. Exiting.", *action)
+	}
+
 }

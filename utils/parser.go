@@ -29,7 +29,6 @@ type Config struct {
 	PullSecretFile   string
 	ClusterName      string
 	UserName         string
-	Password         string
 	OutputDir        string
 
 	SshPublicKey string
@@ -42,6 +41,11 @@ type TemplateParser struct {
 	templateDir       string
 	outputFile        string
 	cloudTemplatesMap map[string]string
+}
+
+var cloudTemplatesMap = map[string]string{
+	"aws": "aws_basic.tmpl",
+	//TODO add more templates
 }
 
 func NewTemplateParser(requestedCloud string, data Config) TemplateParser {
@@ -61,10 +65,7 @@ func NewTemplateParser(requestedCloud string, data Config) TemplateParser {
 	templateParser.outputFile = "install-config.yaml"
 
 	//Mapping from argument to file.
-	templateParser.cloudTemplatesMap = map[string]string{
-		"aws": "aws_basic.tmpl",
-		//TODO add more templates
-	}
+	templateParser.cloudTemplatesMap = cloudTemplatesMap
 
 	return templateParser
 }
@@ -139,5 +140,7 @@ func (t *TemplateParser) ParseTemplate() {
 	if err != nil {
 		panic(err)
 	}
+
+	//TODO: maybe the install config should be backed up? openshift-install binary will destroy it
 
 }
