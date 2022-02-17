@@ -2,7 +2,7 @@
 
 sshPublicKeyFile = "/home/rbednar/.ssh/id_rsa.pub"
 
-#Do not use other name than "config.json"
+#Do not use other name than "config.json" because of docker.
 pullSecretFile = "/tmp/config.json"
 
 clusterName = "mycluster-01"

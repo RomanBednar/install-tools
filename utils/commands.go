@@ -50,21 +50,6 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 	return
 }
 
-//func runCommand(baseCmd string, workDir string, args []string) ([]byte, error) {
-//	cmd := exec.Command(baseCmd, args...)
-//	cmd.Dir = workDir
-//	log.Printf("Running command: %v\n", cmd)
-//	out, err := cmd.CombinedOutput()
-//	if exitError, ok := err.(*exec.ExitError); ok {
-//		return exitError.ExitCode()
-//	}
-//	if err != nil {
-//		log.Fatalf("%s\n%v\n", out, err)
-//	}
-//	log.Printf("Command result: %s", string(out))
-//	return out, nil
-//}
-
 func getCcoImageDigest(pullSecretFile string, imageUrl string) string {
 	baseCmd := "oc"
 	args := []string{"adm", "-a", pullSecretFile, "release", "info", "--image-for", "cloud-credential-operator", imageUrl}
@@ -120,6 +105,7 @@ func InstallCluster(installDir string, verbose bool) {
 	}
 	log.Printf("Starting cluster installation.")
 	_, _, _ = runCommand(baseCmd, installDir, args...)
+	//TODO: this hides output from the progress - fix it
 }
 
 func DestroyCluster(installDir string, verbose bool) {
