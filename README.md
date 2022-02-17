@@ -44,3 +44,7 @@
       https://oauth-openshift.apps.build01-us-west-2.vmc.ci.openshift.org/oauth/authorize?client_id=console&redirect_uri=https%3A%2F%2Fconsole-openshift-console.apps.build01-us-west-2.vmc.ci.openshift.org%2Fauth%2Fcallback&response_type=code&scope=user%3Afull&state=05f61d3d
    
 3. Run 'oc login' followed by 'oc registry login --to=<your_secrets_file>'. Repeat the steps for all registries or for subset of those if you're absolutely sure which ones you need. Each 'oc registry' command will *append* to your secrets file from Step 1.
+
+4. Run it - a working example:
+  
+    ```$go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir```
