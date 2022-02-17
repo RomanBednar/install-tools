@@ -14,8 +14,8 @@ var (
 	image = flag.String("image", "", "Required - URL of the desired image.")
 
 	//Possible overrides of config values.
-	username  = flag.String("username", "", "userName override.")
-	outputDir = flag.String("output", "", "outputDir override.")
+	userName  = flag.String("username", "", "userName override.")
+	outputDir = flag.String("outputdir", "", "outputDir override.")
 
 	// Flow control flags.
 	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
@@ -69,9 +69,6 @@ func main() {
 
 	configureViper()
 
-	//log.Printf("From viper: %v\n", viper.GetString("username"))
-	//log.Printf("From viper: %v\n", viper.AllSettings())
-
 	// Get config struct and unmarshal viper config to it.
 	var config utils.Config
 	err := viper.Unmarshal(&config)
@@ -79,7 +76,13 @@ func main() {
 		log.Fatalf("Could not unmarshal config to struct: %v", err)
 	}
 
-	//log.Printf("config from struct: %v\n", config)
+	//log.Printf("Config from struct: %+v\n", config)
+	//log.Printf("Config from viper: %v\n", viper.AllSettings())
+
+	if !utils.CanDockerLogin(config.PullSecretFile, *image) {
+		log.Fatalf("Authentication failed for image repo: %v\nThis is most likely invalid or expired secret."+
+			"Please check your secrets file: %v\n", *image, config.PullSecretFile)
+	}
 
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 

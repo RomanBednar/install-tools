@@ -8,36 +8,79 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+	"syscall"
 )
 
-func runCommand(baseCmd string, workDir string, args []string) []byte {
-	cmd := exec.Command(baseCmd, args...)
+const defaultFailedCode = 1
+
+func runCommand(name string, workDir string, args ...string) (stdout string, stderr string, exitCode int) {
+	log.Println("run command:", name, args)
+	var outbuf, errbuf bytes.Buffer
+	cmd := exec.Command(name, args...)
 	cmd.Dir = workDir
-	log.Printf("Running command: %v\n", cmd)
-	out, err := cmd.CombinedOutput()
+	cmd.Stdout = &outbuf
+	cmd.Stderr = &errbuf
+
+	err := cmd.Run()
+	stdout = outbuf.String()
+	stderr = errbuf.String()
+
 	if err != nil {
-		log.Fatalf("%s\n%v\n", out, err)
+		// try to get the exit code
+		if exitError, ok := err.(*exec.ExitError); ok {
+			ws := exitError.Sys().(syscall.WaitStatus)
+			exitCode = ws.ExitStatus()
+		} else {
+			// This will happen (in OSX) if `name` is not available in $PATH,
+			// in this situation, exit code could not be get, and stderr will be
+			// empty string very likely, so we use the default fail code, and format err
+			// to string and set to stderr
+			log.Printf("Could not get exit code for failed program: %v, %v", name, args)
+			exitCode = defaultFailedCode
+			if stderr == "" {
+				stderr = err.Error()
+			}
+		}
+	} else {
+		// success, exitCode should be 0 if go is ok
+		ws := cmd.ProcessState.Sys().(syscall.WaitStatus)
+		exitCode = ws.ExitStatus()
 	}
-	log.Printf("Command result: %s", string(out))
-	return out
+	log.Printf("command result, stdout: %v, stderr: %v, exitCode: %v", stdout, stderr, exitCode)
+	return
 }
+
+//func runCommand(baseCmd string, workDir string, args []string) ([]byte, error) {
+//	cmd := exec.Command(baseCmd, args...)
+//	cmd.Dir = workDir
+//	log.Printf("Running command: %v\n", cmd)
+//	out, err := cmd.CombinedOutput()
+//	if exitError, ok := err.(*exec.ExitError); ok {
+//		return exitError.ExitCode()
+//	}
+//	if err != nil {
+//		log.Fatalf("%s\n%v\n", out, err)
+//	}
+//	log.Printf("Command result: %s", string(out))
+//	return out, nil
+//}
 
 func getCcoImageDigest(pullSecretFile string, imageUrl string) string {
 	baseCmd := "oc"
 	args := []string{"adm", "-a", pullSecretFile, "release", "info", "--image-for", "cloud-credential-operator", imageUrl}
 	log.Printf("Obtaining Cloud Credentials Operator image digest from image: %v\n", imageUrl)
-	out := runCommand(baseCmd, "", args)
+	out, _, _ := runCommand(baseCmd, "", args...)
 
-	return strings.TrimSuffix(string(out), "\n")
+	return strings.TrimSuffix(out, "\n")
 }
 
 func findTarballs(outputDir string) []string {
 	baseCmd := "find"
 	args := []string{outputDir, "-name", "*.tar.*"}
 	log.Printf("Looking up tarballs in : %v", outputDir)
-	out := runCommand(baseCmd, "", args) //Must not switch dir.
+	out, _, _ := runCommand(baseCmd, "", args...) //Must not switch dir.
 
-	return strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	return strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 }
 
 func Unarchive(outputDir, targetDir string) {
@@ -55,7 +98,7 @@ func ExtractTools(pullSecretFile string, outputDir string, imageUrl string) {
 	baseCmd := "oc"
 	args := []string{"adm", "-a", pullSecretFile, "release", "extract", "--tools", imageUrl}
 	log.Printf("Extracting tools from image: %v", imageUrl)
-	runCommand(baseCmd, outputDir, args)
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }
 
 func ExtractCcoctl(pullSecretFile string, outputDir string, imageUrl string) {
@@ -63,7 +106,7 @@ func ExtractCcoctl(pullSecretFile string, outputDir string, imageUrl string) {
 	baseCmd := "oc"
 	args := []string{"image", "-a", pullSecretFile, "extract", "--file", "/usr/bin/ccoctl", ccoImage}
 	log.Printf("Extracting ccoctl from image: %v", ccoImage)
-	runCommand(baseCmd, outputDir, args)
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
 	//TODO: make sure ccoctl is executable.
 
@@ -73,18 +116,18 @@ func InstallCluster(installDir string, verbose bool) {
 	baseCmd := "./openshift-install"
 	args := []string{"create", "cluster"}
 	if verbose {
-		args = append(args, "-v")
+		args = append(args, "--log-level", "debug")
 	}
 	log.Printf("Starting cluster installation.")
-	runCommand(baseCmd, installDir, args)
+	_, _, _ = runCommand(baseCmd, installDir, args...)
 }
 
 func DestroyCluster(installDir string, verbose bool) {
 	baseCmd := "./openshift-install"
 	args := []string{"destroy", "cluster"}
 	if verbose {
-		args = append(args, "-v")
+		args = append(args, "--log-level", "debug")
 	}
 	log.Printf("Destroying cluster.")
-	runCommand(baseCmd, installDir, args)
+	_, _, _ = runCommand(baseCmd, installDir, args...)
 }
