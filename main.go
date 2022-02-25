@@ -15,8 +15,9 @@ var (
 
 	//Possible overrides of config values.
 	userName       = flag.String("username", "", "userName override.")
-	vmwarePassword = flag.String("vmwarepassword", "", "vmwarePassword override.")
+	vmwarePassword = flag.String("vmwarepassword", "", "vmwarePassword override.") //TODO: handle passwords more securely
 	outputDir      = flag.String("outputdir", "", "outputDir override.")
+	cloudRegion    = flag.String("cloudregion", "", "cloudRegion override.")
 
 	// Flow control flags.
 	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
@@ -79,6 +80,7 @@ func main() {
 
 	//log.Printf("Config from struct: %+v\n", config)
 	//log.Printf("Config from viper: %v\n", viper.AllSettings())
+	//log.Fatalf("err")
 
 	if !utils.CanDockerLogin(config.PullSecretFile, *image) {
 		log.Fatalf("Authentication failed for image repo: %v\nThis is most likely invalid or expired secret."+
@@ -92,9 +94,7 @@ func main() {
 	parser := utils.NewTemplateParser(*cloud, config)
 	parser.ParseTemplate()
 
-	// Extract and unarchive tools from image
-	utils.ExtractTools(config.PullSecretFile, config.OutputDir, *image)
-	utils.Unarchive(config.OutputDir, config.OutputDir)
+	utils.NewInstallDriver(*cloud, *image, config).Run()
 
 	if *dryRun {
 		log.Printf("Done.")

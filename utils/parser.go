@@ -35,6 +35,8 @@ type Config struct {
 	PullSecret   string
 
 	VmwarePassword string
+
+	CloudRegion string
 }
 
 type TemplateParser struct {
@@ -46,8 +48,9 @@ type TemplateParser struct {
 }
 
 var cloudTemplatesMap = map[string]string{
-	"aws":    "aws_basic.tmpl",
-	"vmware": "vmware_basic.tmpl",
+	"aws":     "aws_basic.tmpl",
+	"vmware":  "vmware_basic.tmpl",
+	"alibaba": "alibaba_basic.tmpl",
 	//TODO add more templates
 }
 

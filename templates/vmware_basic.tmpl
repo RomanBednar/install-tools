@@ -11,7 +11,7 @@ platform:
     ingressVIP: 172.31.250.89
     network: dev-segment
     username: {{ .UserName }}@ldap.vmc.ci.openshift.org
-    password: '{{ .VmwarePassword }}'
+    password: {{ .VmwarePassword }}
     vCenter: vcenter.sddc-44-236-21-251.vmwarevmc.com
 pullSecret: '{{ .PullSecret }}'
 sshKey: |

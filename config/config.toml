@@ -8,3 +8,8 @@ pullSecretFile = "/tmp/config.json"
 clusterName = "mycluster-01"
 userName = "rbednar"
 outputDir = "./output"
+
+#Passwords, TODO: handle passwords more safely
+vmwarePassword = "GEtZpdTyJcxCOp)8*uHDo9o9d#o*yt0%"
+
+cloudRegion = "eu-central-1"

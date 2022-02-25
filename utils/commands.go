@@ -3,10 +3,13 @@ package utils
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"github.com/codeclysm/extract"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 )
@@ -47,14 +50,19 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 		exitCode = ws.ExitStatus()
 	}
 	log.Printf("command result, stdout: %v, stderr: %v, exitCode: %v", stdout, stderr, exitCode)
+
+	if exitCode != 0 {
+		panic(fmt.Errorf("Command failed stderr=%v rc=%v", err, exitCode))
+	}
+
 	return
 }
 
-func getCcoImageDigest(pullSecretFile string, imageUrl string) string {
-	baseCmd := "oc"
+func getCcoImageDigest(pullSecretFile, outputDir, imageUrl string) string {
+	baseCmd := "./oc"
 	args := []string{"adm", "-a", pullSecretFile, "release", "info", "--image-for", "cloud-credential-operator", imageUrl}
 	log.Printf("Obtaining Cloud Credentials Operator image digest from image: %v\n", imageUrl)
-	out, _, _ := runCommand(baseCmd, "", args...)
+	out, _, _ := runCommand(baseCmd, outputDir, args...)
 
 	return strings.TrimSuffix(out, "\n")
 }
@@ -79,22 +87,60 @@ func Unarchive(outputDir, targetDir string) {
 	//TODO: handle errors
 }
 
-func ExtractTools(pullSecretFile string, outputDir string, imageUrl string) {
-	baseCmd := "oc"
+func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
+	baseCmd := "oc" //This has to be oc binary already present system wide.
 	args := []string{"adm", "-a", pullSecretFile, "release", "extract", "--tools", imageUrl}
 	log.Printf("Extracting tools from image: %v", imageUrl)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }
 
-func ExtractCcoctl(pullSecretFile string, outputDir string, imageUrl string) {
-	ccoImage := getCcoImageDigest(pullSecretFile, imageUrl)
-	baseCmd := "oc"
-	args := []string{"image", "-a", pullSecretFile, "extract", "--file", "/usr/bin/ccoctl", ccoImage}
+func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
+	ccoImage := getCcoImageDigest(pullSecretFile, outputDir, imageUrl)
+	baseCmd := "./oc"
+	args := []string{"image", "-a", pullSecretFile, "extract", "--file", "/usr/bin/ccoctl", "--confirm", ccoImage}
 	log.Printf("Extracting ccoctl from image: %v", ccoImage)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
-	//TODO: make sure ccoctl is executable.
+	baseCmd = "chmod"
+	args = []string{"+x", "./ccoctl"}
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+}
 
+func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, region, cloud string) {
+	baseCmd := "./openshift-install"
+	args := []string{"create", "manifests", "--log-level", "debug"}
+	log.Printf("Extracting manifests from image: %v", imageUrl)
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	baseCmd = "awk"
+	args = []string{"/infrastructureName:/{print $2}", "manifests/cluster-infrastructure-02-config.yml"}
+	log.Println("Getting Infrastructure name")
+	out, _, _ := runCommand(baseCmd, outputDir, args...)
+	infrastructureName := strings.TrimSuffix(out, "\n")
+	log.Printf("Infrastructure name found: %v", infrastructureName)
+
+	baseCmd = "mkdir"
+	args = []string{"creds", "cco-manifests"}
+	log.Println("Creating creds directory.")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	baseCmd = "./oc"
+	args = []string{"adm", "-a", pullSecretFile, "release", "extract", "--credentials-requests", "--cloud", cloud, "--to", "./creds", imageUrl}
+	log.Println("Extracting credential request")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	baseCmd = "./ccoctl"
+	args = []string{cloud, "create-ram-users", "--region", region, "--name", infrastructureName, "--credentials-requests-dir", "./creds", "--output-dir", "./cco-manifests"}
+	log.Printf("Creating cloud credential manifests.")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	pwd, _ := os.Getwd()
+	baseCmd = "cp"
+	files, _ := filepath.Glob("cco-manifests/manifests/*")
+	manifestsDir := pwd + outputDir + strings.Join(files, " ")
+	args = []string{"-v", manifestsDir, "manifests/"}
+	log.Printf("Copying cloud credential manifests to manifests dir.")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }
 
 func InstallCluster(installDir string, verbose bool) {
@@ -105,7 +151,7 @@ func InstallCluster(installDir string, verbose bool) {
 	}
 	log.Printf("Starting cluster installation.")
 	_, _, _ = runCommand(baseCmd, installDir, args...)
-	//TODO: this hides output from the progress - fix it
+	//TODO: this hides output from the progress - fix it (maybe use tee?)
 }
 
 func DestroyCluster(installDir string, verbose bool) {
