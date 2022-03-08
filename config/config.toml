@@ -6,10 +6,17 @@ sshPublicKeyFile = "/home/rbednar/.ssh/id_rsa.pub"
 pullSecretFile = "/tmp/config.json"
 
 clusterName = "mycluster-01"
+
+# username should match kerberos ID (neede by vmware cloud)
 userName = "rbednar"
+
 outputDir = "./output"
 
-#Passwords, TODO: handle passwords more safely
+# Passwords
+# TODO: handle passwords more safely
 vmwarePassword = "GEtZpdTyJcxCOp)8*uHDo9o9d#o*yt0%"
 
 cloudRegion = "eu-central-1"
+
+
+#TODO: need vmware apiVIP and ingressVIP configured!
