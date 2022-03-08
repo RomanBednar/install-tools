@@ -122,7 +122,7 @@ func (t *TemplateParser) ParseTemplate() {
 
 	template := template.Must(template.New(templateName).ParseFiles(templatePath))
 
-	output := t.data.OutputDir + "/" + t.outputFile
+	output := t.data.OutputDir + "/" + t.outputFile //TODO bug here - change to a module that handles paths (this does not work well)
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		log.Printf("Output file %v already exists, overwrite?\n", output)
 		if !yesNo() {

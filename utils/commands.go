@@ -134,11 +134,11 @@ func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, regio
 	log.Printf("Creating cloud credential manifests.")
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
+	// Copy files to final manifests dir.
 	pwd, _ := os.Getwd()
+	files, _ := filepath.Glob(pwd + outputDir + "cco-manifests/manifests/*") //TODO: not good, there should be some module for joining system path
 	baseCmd = "cp"
-	files, _ := filepath.Glob("cco-manifests/manifests/*")
-	manifestsDir := pwd + outputDir + strings.Join(files, " ")
-	args = []string{"-v", manifestsDir, "manifests/"}
+	args = []string{"-v", "-r", strings.Join(files, " "), "manifests/"}
 	log.Printf("Copying cloud credential manifests to manifests dir.")
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }

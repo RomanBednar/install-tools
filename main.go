@@ -18,6 +18,7 @@ var (
 	vmwarePassword = flag.String("vmwarepassword", "", "vmwarePassword override.") //TODO: handle passwords more securely
 	outputDir      = flag.String("outputdir", "", "outputDir override.")
 	cloudRegion    = flag.String("cloudregion", "", "cloudRegion override.")
+	//TODO: add pull secret file override
 
 	// Flow control flags.
 	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
