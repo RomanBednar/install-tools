@@ -7,7 +7,6 @@ import (
 	"github.com/codeclysm/extract"
 	"io/ioutil"
 	"log"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -135,13 +134,14 @@ func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, regio
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
 	// Copy files to final manifests dir.
-	pwd, _ := os.Getwd()
-	path := filepath.Join(pwd, outputDir, "cco-manifests/manifests/*")
+	path := filepath.Join(outputDir, "cco-manifests/manifests/*")
 	files, _ := filepath.Glob(path)
 	baseCmd = "cp"
-	args = []string{"-v", "-r", strings.Join(files, " "), "manifests/"}
 	log.Printf("Copying cloud credential manifests to manifests dir.")
-	_, _, _ = runCommand(baseCmd, outputDir, args...)
+	for _, f := range files { //TODO: change this to one command (need to figure out how to do escape the command properly)
+		args := []string{"-v", "-r", f, "./manifests"}
+		_, _, _ = runCommand(baseCmd, outputDir, args...)
+	}
 }
 
 func InstallCluster(installDir string, verbose bool) {
