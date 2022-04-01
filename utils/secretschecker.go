@@ -3,6 +3,7 @@ package utils
 import (
 	"log"
 	"net/url"
+	"path/filepath"
 	"strings"
 )
 
@@ -25,7 +26,7 @@ func getDomainFromURL(imageURL string) string {
 
 func CanDockerLogin(pullSecretFile, imageUrl string) bool {
 	domain := getDomainFromURL(imageUrl)
-	configPath := strings.TrimRight(pullSecretFile, "/config.json")
+	configPath := filepath.Base(pullSecretFile)
 	baseCmd := "docker"
 	args := []string{"--config", configPath, "login", domain}
 	log.Printf("Verifying docker can login to: %v", domain)

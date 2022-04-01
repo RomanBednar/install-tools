@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"text/template"
 )
 
@@ -122,7 +123,7 @@ func (t *TemplateParser) ParseTemplate() {
 
 	template := template.Must(template.New(templateName).ParseFiles(templatePath))
 
-	output := t.data.OutputDir + "/" + t.outputFile //TODO bug here - change to a module that handles paths (this does not work well)
+	output := filepath.Join(t.data.OutputDir, t.outputFile)
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		log.Printf("Output file %v already exists, overwrite?\n", output)
 		if !yesNo() {
