@@ -19,3 +19,6 @@ output
 
 # Example config dir
 config
+
+# Dir for storing secrets
+secrets

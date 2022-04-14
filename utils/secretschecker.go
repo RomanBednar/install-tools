@@ -3,7 +3,6 @@ package utils
 import (
 	"log"
 	"net/url"
-	"path/filepath"
 	"strings"
 )
 
@@ -24,12 +23,12 @@ func getDomainFromURL(imageURL string) string {
 	return domain
 }
 
-func CanDockerLogin(pullSecretFile, imageUrl string) bool {
-	domain := getDomainFromURL(imageUrl)
-	configPath := filepath.Dir(pullSecretFile)
-	baseCmd := "docker"
-	args := []string{"--config", configPath, "login", domain}
-	log.Printf("Verifying docker can login to: %v", domain)
+func CanPodmanLogin(pullSecretFile, imageUrl string) bool {
+	registryDomain := getDomainFromURL(imageUrl)
+	//configPath := filepath.Dir(pullSecretFile)
+	baseCmd := "podman"
+	args := []string{"login", "--authfile", pullSecretFile, registryDomain}
+	log.Printf("Verifying we can 'podman login' to: %v", registryDomain)
 	_, _, rc := runCommand(baseCmd, "", args...)
 
 	return rc == 0

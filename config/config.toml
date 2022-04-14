@@ -1,22 +1,15 @@
 #EXAMPLE CONFIG FILE
 
-sshPublicKeyFile = "/home/rbednar/.ssh/id_rsa.pub"
-
-#Do not use other name than "config.json" because of docker.
-pullSecretFile = "/tmp/config.json"
-
+###Customize values below####
 clusterName = "mycluster-01"
-
-# username should match kerberos ID (neede by vmware cloud)
-userName = "rbednar"
-
-outputDir = "./output"
+userName = "rbednar" # username should match kerberos ID (needed by vmware cloud)
+outputDir = "./output" # where script will save all output
+cloudRegion = "eu-central-1"
+#TODO: need vmware apiVIP and ingressVIP configured!
 
 # Passwords
-# TODO: handle passwords more safely
 vmwarePassword = "GEtZpdTyJcxCOp)8*uHDo9o9d#o*yt0%"
 
-cloudRegion = "eu-central-1"
-
-
-#TODO: need vmware apiVIP and ingressVIP configured!
+####Do not change values below unless you're sure what you're doing#####
+sshPublicKeyFile = "/app/secrets/id_rsa.pub"
+pullSecretFile = "/app/secrets/auth.json"

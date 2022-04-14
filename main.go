@@ -79,19 +79,13 @@ func main() {
 		log.Fatalf("Could not unmarshal config to struct: %v", err)
 	}
 
-	//log.Printf("Config from struct: %+v\n", config)
-	//log.Printf("Config from viper: %v\n", viper.AllSettings())
-	//log.Fatalf("err")
-
-	if !utils.CanDockerLogin(config.PullSecretFile, *image) {
+	if !utils.CanPodmanLogin(config.PullSecretFile, *image) { //TODO: fix this, commnads now panic on failure, this will never return bool
 		log.Fatalf("Authentication failed for image repo: %v\nThis is most likely invalid or expired secret."+
 			"Please check your secrets file: %v\n", *image, config.PullSecretFile)
 	}
 
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 
-	//TODO: flows need to move to cloud specific modules
-	// Parse template.
 	parser := utils.NewTemplateParser(*cloud, config)
 	parser.ParseTemplate()
 
