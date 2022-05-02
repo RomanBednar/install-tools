@@ -22,7 +22,7 @@ var (
 
 	// Flow control flags.
 	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
-	dryRun = flag.Bool("dryrun", false, "Prepare installation files only.")
+	dryRun = flag.Bool("dryrun", false, "Prepare installation files only.") //TODO: make this an action? Currently there is a bug - no action does not exit early enough.
 )
 
 var (
