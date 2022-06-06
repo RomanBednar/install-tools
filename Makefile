@@ -17,7 +17,7 @@ build:
 image: get-secrets
 	${ENGINE} build . -t ${IMAGE_TAG}
 
-enter:
+enter: get-secrets
 	${ENTER_CMD} || make image && ${ENTER_CMD}
 
 devel: get-secrets
