@@ -18,7 +18,7 @@ image: get-secrets
 	${ENGINE} build . -t ${IMAGE_TAG}
 
 enter: get-secrets
-	${ENTER_CMD} || make image && ${ENTER_CMD}
+	${ENTER_CMD} || echo "You need to build the app image first with 'make image'"
 
 devel: get-secrets
 	${DEVEL_CMD}
