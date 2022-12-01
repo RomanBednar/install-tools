@@ -90,8 +90,12 @@ func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
 	// TODO: maybe this can be changed to just extract openshift-install and oc to make it faster?
 	// Something like: $ oc adm -a ${LOCAL_SECRET_JSON} release extract --command=openshift-install "${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}-${ARCHITECTURE}"
 
+	secret, err := filepath.Abs(pullSecretFile)
+	if err != nil {
+		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
+	}
 	baseCmd := "oc" //This has to be oc binary already present system wide, after this the extracted "./oc" should be used.
-	args := []string{"adm", "-a", pullSecretFile, "release", "extract", "--tools", imageUrl}
+	args := []string{"adm", "-a", secret, "release", "extract", "--tools", imageUrl}
 	log.Printf("Extracting tools from image: %v", imageUrl)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }

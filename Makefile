@@ -12,7 +12,7 @@ get-secrets:
 	cp ${PODMAN_AUTH_FILE} ./secrets
 
 build:
-	go build -o "$(abspath ./bin/)/install-tool"
+	GO111MODULE=on go build -o "$(abspath ./bin/)/install-tool"
 
 image: get-secrets
 	${ENGINE} build . -t ${IMAGE_TAG}

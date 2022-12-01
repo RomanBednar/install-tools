@@ -11,5 +11,5 @@ cloudRegion = "eu-central-1"
 vmwarePassword = "GEtZpdTyJcxCOp)8*uHDo9o9d#o*yt0%"
 
 ####Do not change values below unless you're sure what you're doing#####
-sshPublicKeyFile = "/app/secrets/id_rsa.pub"
-pullSecretFile = "/app/secrets/auth.json"
+sshPublicKeyFile = "secrets/id_rsa.pub"
+pullSecretFile = "secrets/auth.json"
