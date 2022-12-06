@@ -5,6 +5,11 @@
    * Config files - two locations are searched (./config and ~/.install-tools) for a file named "config.toml". The one in homedir has higher priority.
    * Command line arguments - these have the highest priority
 
+
+2. Install dependencies 
+   * podman
+   * oc
+
 # Obtaining all pull secrets
 
 1. Visit installer web page
