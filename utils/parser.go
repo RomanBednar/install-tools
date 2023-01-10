@@ -24,7 +24,7 @@ func yesNo() bool {
 	return result == "Yes"
 }
 
-//All configuration is loaded into this structure and then used to parse templates.
+// All configuration is loaded into this structure and then used to parse templates.
 type Config struct {
 	SshPublicKeyFile string
 	PullSecretFile   string
@@ -52,6 +52,7 @@ var cloudTemplatesMap = map[string]string{
 	"aws":     "aws_basic.tmpl",
 	"vmware":  "vmware_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
+	"azure":   "azure_basic.tmpl",
 	//TODO add more templates
 }
 
