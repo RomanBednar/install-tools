@@ -26,7 +26,7 @@ func getDomainFromURL(imageURL string) string {
 func CanPodmanLogin(pullSecretFile, imageUrl string) bool {
 	registryDomain := getDomainFromURL(imageUrl)
 	//configPath := filepath.Dir(pullSecretFile)
-	baseCmd := "podman"
+	baseCmd := "podman" //TODO: making this configurable is a problem because docker does not have --authfile flag
 	args := []string{"login", "--authfile", pullSecretFile, registryDomain}
 	log.Printf("Verifying we can 'podman login' to: %v", registryDomain)
 	_, _, rc := runCommand(baseCmd, "", args...)

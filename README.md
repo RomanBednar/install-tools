@@ -56,3 +56,8 @@
 4. Run it - a working example:
   
     ```$go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir```
+
+
+## TODO
+
+1) correct destroy action so it does not extract tools from payload - it's not needed
