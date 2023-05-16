@@ -85,7 +85,7 @@ func main() {
 	//}
 
 	utils.MustDockerLogin(config.PullSecretFile, *image)
-
+	log.Printf("Image %v is valid.", *image)
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 
 	parser := utils.NewTemplateParser(*cloud, config)

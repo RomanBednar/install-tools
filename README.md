@@ -68,3 +68,5 @@ TODO
 1) correct destroy action, so it does not extract tools from payload - it's not needed
 2) create config file interactively - ask for values and save them to config/config.env or config/config.toml
 3) add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
+4) handle pull secret file better - parse it directly from docker conf.json to install template, so it does not have to be copied to temporary file just to get rid of spaces
+5) for some reason docker can store `"quay.io":{}` in its config.json which will break openshift-install if this lands in `pullSecret` - handle this case

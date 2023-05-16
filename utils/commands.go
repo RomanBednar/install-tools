@@ -59,8 +59,14 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 }
 
 func getCcoImageDigest(pullSecretFile, outputDir, imageUrl string) string {
+	// get absolute path of pullSecretFile
+	file, err := filepath.Abs(pullSecretFile)
+	if err != nil {
+		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
+	}
+
 	baseCmd := "./oc"
-	args := []string{"adm", "-a", pullSecretFile, "release", "info", "--image-for", "cloud-credential-operator", imageUrl}
+	args := []string{"adm", "-a", file, "release", "info", "--image-for", "cloud-credential-operator", imageUrl}
 	log.Printf("Obtaining Cloud Credentials Operator image digest from image: %v\n", imageUrl)
 	out, _, _ := runCommand(baseCmd, outputDir, args...)
 
@@ -77,6 +83,7 @@ func findTarballs(outputDir string) []string {
 }
 
 func Unarchive(outputDir, targetDir string) {
+	log.Printf("Unarchiving tarballs from: %v to: %v", outputDir, targetDir)
 	tarballs := findTarballs(outputDir)
 	for _, tarball := range tarballs {
 		log.Printf("Extracting: %v", tarball)
@@ -88,6 +95,7 @@ func Unarchive(outputDir, targetDir string) {
 }
 
 func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
+	log.Printf("Extracting tools from image: %v", imageUrl)
 	// TODO: maybe this can be changed to just extract openshift-install and oc to make it faster?
 	// Something like: $ oc adm -a ${LOCAL_SECRET_JSON} release extract --command=openshift-install "${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}-${ARCHITECTURE}"
 
@@ -102,16 +110,17 @@ func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
 }
 
 func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
+	log.Printf("Extracting ccoctl from image: %v", imageUrl)
 	// get absolute path of pullSecretFile
 	file, err := filepath.Abs(pullSecretFile)
 	if err != nil {
 		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
 	}
 
-	ccoImage := getCcoImageDigest(pullSecretFile, outputDir, imageUrl)
+	ccoImage := getCcoImageDigest(file, outputDir, imageUrl)
 	baseCmd := "./oc"
 	args := []string{"image", "-a", file, "extract", "--file", "/usr/bin/ccoctl", "--confirm", ccoImage}
-	log.Printf("Extracting ccoctl from image: %v", ccoImage)
+	log.Printf("Extracting ccoctl from CCO image digest: %v", ccoImage)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
 	baseCmd = "chmod"
@@ -120,9 +129,15 @@ func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
 }
 
 func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, region, cloud string) {
+	// get absolute path of pullSecretFile
+	file, err := filepath.Abs(pullSecretFile)
+	if err != nil {
+		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
+	}
+
+	log.Printf("Extracting manifests from image: %v", imageUrl)
 	baseCmd := "./openshift-install"
 	args := []string{"create", "manifests", "--log-level", "debug"}
-	log.Printf("Extracting manifests from image: %v", imageUrl)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
 	baseCmd = "awk"
@@ -138,7 +153,7 @@ func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, regio
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
 	baseCmd = "./oc"
-	args = []string{"adm", "-a", pullSecretFile, "release", "extract", "--credentials-requests", "--cloud", cloud, "--to", "./creds", imageUrl}
+	args = []string{"adm", "-a", file, "release", "extract", "--credentials-requests", "--cloud", cloud, "--to", "./creds", imageUrl}
 	log.Println("Extracting credential request")
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 

@@ -57,6 +57,8 @@ var cloudTemplatesMap = map[string]string{
 }
 
 func NewTemplateParser(requestedCloud string, data Config) TemplateParser {
+	log.Printf("Creating TemplateParser with cloud: %v\n", requestedCloud)
+	log.Printf("TemplateParser data: %v\n", data)
 	templateParser := TemplateParser{}
 
 	templateParser.requestedCloud = requestedCloud
@@ -74,7 +76,7 @@ func NewTemplateParser(requestedCloud string, data Config) TemplateParser {
 
 	//Mapping from argument to file.
 	templateParser.cloudTemplatesMap = cloudTemplatesMap
-
+	log.Printf("TemplateParser created with cloud: %v\n", templateParser.requestedCloud)
 	return templateParser
 }
 
@@ -100,15 +102,17 @@ func (t *TemplateParser) getSupportedClouds() []string {
 }
 
 func (t *TemplateParser) fileToString(file string, compact bool) string {
+	log.Printf("Reading file: %v\n", file)
 	content, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if compact {
+		log.Printf("Compacting json file: %v\n", file)
 		buffer := new(bytes.Buffer)
 		if err := json.Compact(buffer, content); err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 		return buffer.String()
 	}

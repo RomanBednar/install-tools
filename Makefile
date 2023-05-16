@@ -1,19 +1,12 @@
-IMAGE_TAG ?= install-tools:test
-SSH_PUB_KEY ?= ${HOME}/.ssh/id_rsa.pub
-
-#ENGINE ?= podman
-#SECRET_FILE ?= ${XDG_RUNTIME_DIR}/containers/auth.json
-
-ENGINE ?= docker
-SECRET_FILE ?= ${HOME}/.docker/config.json
+include ./config/config.env
 
 ENTER_CMD = ${ENGINE} run --rm -it --privileged localhost/${IMAGE_TAG} /bin/bash
 DEVEL_CMD = ${ENGINE} run --rm -it -v ./:/app:z --privileged localhost/${IMAGE_TAG} /bin/bash
 
 get-secrets:
 	mkdir -p ./secrets || .
-	cp ${SSH_PUB_KEY} ./secrets
-	cat ${SECRET_FILE} | tr -d '[:space:]' > secrets/config.json
+	cp ${SSH_PUB_KEY_FILE} ./secrets
+	cat ${PULL_SECRET_FILE} | tr -d '[:space:]' > secrets/config.json
 
 build:
 	GO111MODULE=on go build -o "$(abspath ./bin/)/install-tool"
