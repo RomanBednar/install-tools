@@ -51,6 +51,7 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 	log.Printf("command result, stdout: %v, stderr: %v, exitCode: %v", stdout, stderr, exitCode)
 
 	if exitCode != 0 {
+		//TODO: maybe we should not panic here, but return error instead
 		panic(fmt.Errorf("Command failed stderr=%v rc=%v", err, exitCode))
 	}
 
@@ -101,9 +102,15 @@ func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
 }
 
 func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
+	// get absolute path of pullSecretFile
+	file, err := filepath.Abs(pullSecretFile)
+	if err != nil {
+		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
+	}
+
 	ccoImage := getCcoImageDigest(pullSecretFile, outputDir, imageUrl)
 	baseCmd := "./oc"
-	args := []string{"image", "-a", pullSecretFile, "extract", "--file", "/usr/bin/ccoctl", "--confirm", ccoImage}
+	args := []string{"image", "-a", file, "extract", "--file", "/usr/bin/ccoctl", "--confirm", ccoImage}
 	log.Printf("Extracting ccoctl from image: %v", ccoImage)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 

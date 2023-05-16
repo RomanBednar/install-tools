@@ -12,4 +12,4 @@ vmwarePassword = "GEtZpdTyJcxCOp)8*uHDo9o9d#o*yt0%"
 
 ####Do not change values below unless you're sure what you're doing#####
 sshPublicKeyFile = "secrets/id_rsa.pub"
-pullSecretFile = "secrets/auth.json"
+pullSecretFile = "secrets/config.json"

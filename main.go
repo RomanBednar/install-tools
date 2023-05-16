@@ -79,10 +79,12 @@ func main() {
 		log.Fatalf("Could not unmarshal config to struct: %v", err)
 	}
 
-	if !utils.CanPodmanLogin(config.PullSecretFile, *image) { //TODO: fix this, commnads now panic on failure, this will never return bool
-		log.Fatalf("Authentication failed for image repo: %v\nThis is most likely invalid or expired secret."+
-			"Please check your secrets file: %v\n", *image, config.PullSecretFile)
-	}
+	//if !utils.CanPodmanLogin(config.PullSecretFile, *image) { //TODO: fix this, commnads now panic on failure, this will never return bool
+	//	log.Fatalf("Authentication failed for image repo: %v\nThis is most likely invalid or expired secret."+
+	//		"Please check your secrets file: %v\n", *image, config.PullSecretFile)
+	//}
+
+	utils.MustDockerLogin(config.PullSecretFile, *image)
 
 	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
 

@@ -10,7 +10,9 @@
    * podman
    * oc
 
-# Obtaining all pull secrets
+TODO
+
+# Obtaining pull secrets
 
 1. Visit installer web page
 
@@ -53,11 +55,16 @@
    login 
    --to=<your_secrets_file>'. Repeat the steps for all registries or for subset of those if you're absolutely sure which ones you need. Each 'oc registry' command will *append* to your secrets file from Step 1.
 
-4. Run it - a working example:
+4. Start the installation:
   
     ```$go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir```
 
+## Possible pitfalls when handling secrets
+
+1. You can have two different secrets for quay.io, one from 
 
 ## TODO
 
-1) correct destroy action so it does not extract tools from payload - it's not needed
+1) correct destroy action, so it does not extract tools from payload - it's not needed
+2) create config file interactively - ask for values and save them to config/config.env or config/config.toml
+3) add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
