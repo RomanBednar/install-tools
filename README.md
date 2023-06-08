@@ -1,16 +1,39 @@
 # How to use this tool
 
-1. Configure desired values. The priority order is following:
-   * Defaults in the code - do not use these for custom settings, they're used for some reasonable defaults
-   * Config files - two locations are searched (./config and ~/.install-tools) for a file named "config.toml". The one in homedir has higher priority.
-   * Command line arguments - these have the highest priority
-
-
-2. Install dependencies 
-   * podman
+1. Install dependencies
+   * docker
    * oc
 
-TODO
+1. Configure installer tool
+
+   1. There are multiple places where the installer tool looks for configuration:
+      1. Defaults in the code - do not use these for custom settings, they're used for some reasonable defaults
+      1. Config files - two locations are searched (./config and ~/.install-tools) for a file named "config.toml". The one in homedir has higher priority.
+      1. Command line arguments - these have the highest priority
+   1. Example config file: 
+   
+   ```
+   clusterName = "mycluster-01"
+   userName = "user-01"
+   outputDir = "./output"
+   cloudRegion = "eu-central-1"
+   vmwarePassword = "xxxxxx"
+   sshPublicKeyFile = "secrets/id_rsa.pub"
+   pullSecretFile = "secrets/config.json"
+   ```
+   
+1. Gather all secrets, this will copy ssh keys and pull secret under ./secrets
+```
+make get-secrets
+```
+
+1. Start the installation:
+
+```
+go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir
+```
+
+> You might need to enable go modules explicitly if your environment has it disabled by appending `GO111MODULE=on` to the command above.
 
 # Obtaining pull secrets
 
@@ -55,9 +78,7 @@ TODO
    login 
    --to=<your_secrets_file>'. Repeat the steps for all registries or for subset of those if you're absolutely sure which ones you need. Each 'oc registry' command will *append* to your secrets file from Step 1.
 
-4. Start the installation:
-  
-    ```$go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir```
+
 
 ## Possible pitfalls when handling secrets
 
@@ -70,3 +91,5 @@ TODO
 3) add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
 4) handle pull secret file better - parse it directly from docker conf.json to install template, so it does not have to be copied to temporary file just to get rid of spaces
 5) for some reason docker can store `"quay.io":{}` in its config.json which will break openshift-install if this lands in `pullSecret` - handle this case
+6) explore how to run everything in docker, dind seems to work fine when socket is mounted: docker run -it -v /var/run/docker.sock:/var/run/docker.sock docker:dind sh
+7) 
