@@ -50,6 +50,7 @@ type TemplateParser struct {
 
 var cloudTemplatesMap = map[string]string{
 	"aws":     "aws_basic.tmpl",
+	"aws-odf": "aws_odf.tmpl",
 	"vmware":  "vmware_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
 	"azure":   "azure_basic.tmpl",
@@ -85,6 +86,7 @@ func (t *TemplateParser) getTemplatePath(name string) string {
 }
 
 func (t *TemplateParser) getTemplateName(name string) string {
+	fmt.Printf("Searching for template with name: %#v", name)
 	templateName := t.cloudTemplatesMap[name]
 	if templateName == "" {
 		panic(fmt.Errorf("Template not found for requested cloud: %v\nUse one of: %q", name, t.getSupportedClouds()))
