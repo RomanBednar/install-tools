@@ -167,7 +167,7 @@ func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, regio
 	files, _ := filepath.Glob(path)
 	baseCmd = "cp"
 	log.Printf("Copying cloud credential manifests to manifests dir.")
-	for _, f := range files { //TODO: change this to one command (need to figure out how to do escape the command properly)
+	for _, f := range files { //TODO: change this to one command
 		args := []string{"-v", "-r", f, "./manifests"}
 		_, _, _ = runCommand(baseCmd, outputDir, args...)
 	}
@@ -181,7 +181,7 @@ func InstallCluster(installDir string, verbose bool) {
 	}
 	log.Printf("Starting cluster installation.")
 	_, _, _ = runCommand(baseCmd, installDir, args...)
-	//TODO: this hides output from the progress - fix it (maybe use tee?)
+	//TODO: this hides output from the progress - fix it
 }
 
 func DestroyCluster(installDir string, verbose bool) {

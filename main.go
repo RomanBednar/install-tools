@@ -3,108 +3,133 @@ package main
 import (
 	"fmt"
 	"github.com/RomanBednar/install-tools/utils"
-	flag "github.com/spf13/pflag"
-	"github.com/spf13/viper"
 	"log"
+	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+const (
+	defaultConfigFilename = "conf"
+
+	// The environment variable prefix of all environment variables bound to command line flags.
+	// For example, if the flag is --cloud, the environment variable will be INST_CLOUD
+	envPrefix = "INST"
+
+	secretsDir = "./secrets"
 )
 
 var (
-	//Required flags.
-	cloud = flag.String("cloud", "", "Required - cloud provider to use.") //TODO: load possible values from cloudTemplatesMap
-	image = flag.String("image", "", "Required - URL of the desired image.")
-
-	//Possible overrides of config values.
-	userName       = flag.String("username", "", "userName override.")
-	vmwarePassword = flag.String("vmwarepassword", "", "vmwarePassword override.") //TODO: handle passwords more securely
-	outputDir      = flag.String("outputdir", "", "outputDir override.")
-	cloudRegion    = flag.String("cloudregion", "", "cloudRegion override.")
-	//TODO: add pull secret file override
-
-	// Flow control flags.
-	action = flag.String("action", "", "Action to perform. Choose from: [\"create\", \"destroy\"]")
-	dryRun = flag.Bool("dryrun", false, "Prepare installation files only.") //TODO: make this an action? Currently there is a bug - no action does not exit early enough.
-)
-
-var (
-	configName = "config"
-	defaults   = map[string]interface{}{
-		"outputDir": "./output",
-	}
 	configPaths = []string{
-		// First path in this slice has the highest priority.
+		// First path here has the highest priority.
 		"$HOME/.install-tools",
 		"./config",
 	}
 )
 
-func configureViper() {
-	viper.SetConfigName(configName)
+func init() {
+	cobra.OnInitialize(initializeConfig)
 
-	for k, v := range defaults {
-		viper.SetDefault(k, v)
-	}
+	rootCmd.PersistentFlags().StringP("action", "a", "create", "Action to perform. Valid values are: create, destroy.")
+	viper.BindPFlag("action", rootCmd.PersistentFlags().Lookup("action"))
 
+	rootCmd.PersistentFlags().StringP("cloud", "c", "aws", "Cloud to use for installation.")
+	viper.BindPFlag("cloud", rootCmd.PersistentFlags().Lookup("cloud"))
+
+	//TODO: add a scraper to resolve image url by version only (e.g. --image 4.10.0-rc.2)
+	rootCmd.PersistentFlags().StringP("image", "i", "", "OpenShift image to use for installation. HINT: get full URL image at https://amd64.ocp.releases.ci.openshift.org/")
+	viper.BindPFlag("image", rootCmd.PersistentFlags().Lookup("image"))
+
+	rootCmd.PersistentFlags().StringP("cluster-name", "n", "mytestcluster-1", "Name of the cluster to create.")
+	viper.BindPFlag("clustername", rootCmd.PersistentFlags().Lookup("cluster-name"))
+
+	rootCmd.PersistentFlags().StringP("user-name", "u", "mytestuser-1", "Name of the user to create.")
+	viper.BindPFlag("username", rootCmd.PersistentFlags().Lookup("user-name"))
+
+	rootCmd.PersistentFlags().StringP("output-dir", "o", "./_output", "Directory to write output files to.")
+	viper.BindPFlag("outputdir", rootCmd.PersistentFlags().Lookup("output-dir"))
+
+	rootCmd.PersistentFlags().StringP("cloud-region", "r", "us-east-1", "Cloud region to use for installation.")
+	viper.BindPFlag("cloudregion", rootCmd.PersistentFlags().Lookup("cloud-region"))
+
+	rootCmd.PersistentFlags().BoolP("dry-run", "d", false, "Dry run - only generate install-config.yaml and manifests, do not install cluster.")
+	viper.BindPFlag("dryrun", rootCmd.PersistentFlags().Lookup("dry-run"))
+}
+
+func initializeConfig() {
 	for _, path := range configPaths {
 		viper.AddConfigPath(path)
 	}
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		panic(fmt.Errorf("Can't read config file: %v \n", err))
+	viper.SetConfigName(defaultConfigFilename)
+	if err := viper.ReadInConfig(); err != nil {
+		// It's okay if there is no a config file
+		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+			fmt.Printf("Config file not found: %v\n", err)
+		} else {
+			log.Fatal(err)
+		}
 	}
-	viper.BindPFlags(flag.CommandLine)
+	viper.SetEnvPrefix(envPrefix)
+	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+	viper.AutomaticEnv()
 }
 
 func validateFlags() {
-	if *image == "" {
-		log.Fatalf("Image has to be specified. Use --image flag to set it.")
+	if viper.GetString("image") == "" {
+		log.Fatalf("Image must be specified.")
 	}
-	if *cloud == "" {
-		log.Fatalf("Cloud provider has to be specified. Use --cloud flag to set it.")
+	if viper.GetString("cloud") == "" {
+		log.Fatalf("Cloud must be specified.")
 	}
-
 }
 
-func main() {
-	flag.Set("logtostderr", "true")
-	flag.Parse()
+var rootCmd = &cobra.Command{
+	Use:   "install-tool",
+	Short: "OpenShift install tool",
+	Long:  `Simple tool for installing OpenShift on various clouds.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		var c utils.Config
+		if err := viper.Unmarshal(&c); err != nil {
+			fmt.Printf("Error unmarshalling config file: %s", err)
+			os.Exit(1)
+		}
+		fmt.Printf("Running with configuration: %#v\n", c)
+		Run(&c)
+	},
+}
+
+func Run(conf *utils.Config) {
+	//os.Exit(0)
 	validateFlags()
 
-	configureViper()
+	utils.MustDockerLogin(secretsDir, conf.Image)
 
-	// Get config struct and unmarshal viper config to it.
-	var config utils.Config
-	err := viper.Unmarshal(&config)
-	if err != nil {
-		log.Fatalf("Could not unmarshal config to struct: %v", err)
-	}
-
-	//if !utils.CanPodmanLogin(config.PullSecretFile, *image) { //TODO: fix this, commnads now panic on failure, this will never return bool
-	//	log.Fatalf("Authentication failed for image repo: %v\nThis is most likely invalid or expired secret."+
-	//		"Please check your secrets file: %v\n", *image, config.PullSecretFile)
-	//}
-
-	utils.MustDockerLogin(config.PullSecretFile, *image)
-	log.Printf("Image %v is valid.", *image)
-	//TODO: add possibility to resolve image url by version only (e.g. --image 4.10.0-rc.2)
-
-	parser := utils.NewTemplateParser(*cloud, config)
+	parser := utils.NewTemplateParser(conf)
 	parser.ParseTemplate()
 
-	utils.NewInstallDriver(*cloud, *image, config).Run()
+	utils.NewInstallDriver(conf).Run()
 
-	if *dryRun {
+	if conf.DryRun {
 		log.Printf("Done.")
 		return
 	}
 
-	switch *action {
+	action := viper.GetString("action")
+	switch action {
 	case "create":
-		utils.InstallCluster(config.OutputDir, true)
+		utils.InstallCluster(conf.OutputDir, true)
 	case "destroy":
-		utils.DestroyCluster(config.OutputDir, true)
+		utils.DestroyCluster(conf.OutputDir, true)
 	default:
-		log.Fatalf("Unkown action: %v. Exiting.", *action)
+		log.Fatalf("Unkown action: %v. Exiting.", action)
 	}
+}
 
+func main() {
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

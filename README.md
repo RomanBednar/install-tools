@@ -1,39 +1,41 @@
 # How to use this tool
 
-1. Install dependencies
+1. Install required dependencies
    * docker
    * oc
+   * jq
 
-1. Configure installer tool
+2. Configure installer tool
 
    1. There are multiple places where the installer tool looks for configuration:
-      1. Defaults in the code - do not use these for custom settings, they're used for some reasonable defaults
-      1. Config files - two locations are searched (./config and ~/.install-tools) for a file named "config.toml". The one in homedir has higher priority.
-      1. Command line arguments - these have the highest priority
-   1. Example config file: 
+      1. Defaults in the code - lowest priority
+      2. Config files - two locations are searched (./config and ~/.install-tools) for a file named "conf.env", homedir has higher priority.
+      3. Environment variables - higher priority than config files
+      4. Command line arguments - highest priority
+   2. Create a config file in one of the two locations mentioned above, e.g. ~/.install-tools/conf.env, example: 
    
    ```
-   clusterName = "mycluster-01"
-   userName = "user-01"
-   outputDir = "./output"
-   cloudRegion = "eu-central-1"
-   vmwarePassword = "xxxxxx"
-   sshPublicKeyFile = "secrets/id_rsa.pub"
-   pullSecretFile = "secrets/config.json"
+   cloud=aws
+   clusterName=mycluster-02
+   userName=jdoe
+   outputDir=./output
+   cloudRegion=eu-central-1
+   sshPublicKeyFile=${HOME}/.ssh/id_rsa.pub
+   pullSecretFile=${HOME}/.docker/config.json
+   imageTag=install-tools:latest
+   engine=docker
    ```
    
-1. Gather all secrets, this will copy ssh keys and pull secret under ./secrets
+3. Gather all secrets, this will copy ssh keys and pull secret under ./secrets
 ```
 make get-secrets
 ```
 
-1. Start the installation:
+4. Start the installation:
 
 ```
 go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir
 ```
-
-> You might need to enable go modules explicitly if your environment has it disabled by appending `GO111MODULE=on` to the command above.
 
 # Obtaining pull secrets
 
@@ -78,18 +80,12 @@ go run main.go --action create --cloud aws --image quay.io/openshift-release-dev
    login 
    --to=<your_secrets_file>'. Repeat the steps for all registries or for subset of those if you're absolutely sure which ones you need. Each 'oc registry' command will *append* to your secrets file from Step 1.
 
+4. Set `pullSecretFile` in your config file to point to the secrets file you created.
 
+## TODO & known issues
 
-## Possible pitfalls when handling secrets
-
-1. You can have two different secrets for quay.io, one from 
-
-## TODO
-
-1) correct destroy action, so it does not extract tools from payload - it's not needed
-2) create config file interactively - ask for values and save them to config/config.env or config/config.toml
-3) add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
-4) handle pull secret file better - parse it directly from docker conf.json to install template, so it does not have to be copied to temporary file just to get rid of spaces
-5) for some reason docker can store `"quay.io":{}` in its config.json which will break openshift-install if this lands in `pullSecret` - handle this case
-6) explore how to run everything in docker, dind seems to work fine when socket is mounted: docker run -it -v /var/run/docker.sock:/var/run/docker.sock docker:dind sh
-7) 
+* create config file interactively - ask for values and save them to config/config.env or config/config.toml
+* add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
+* handle pull secret file better - parse it directly from docker conf.json to install template, so it does not have to be copied to temporary file just to get rid of spaces
+* for some reason docker can store `"quay.io":{}` in its config.json which will break openshift-install if this lands in `pullSecret` - handle this case
+* explore how to run everything in docker, dind seems to work fine when socket is mounted: docker run -it -v /var/run/docker.sock:/var/run/docker.sock docker:dind sh

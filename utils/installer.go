@@ -3,20 +3,21 @@ package utils
 import "fmt"
 
 type InstallDriver struct {
-	cloud    string
-	imageUrl string
-	config   Config
+	conf *Config
 }
 
-func NewInstallDriver(cloudName string, imageUrl string, config Config) *InstallDriver {
-	installDriver := InstallDriver{cloud: cloudName, imageUrl: imageUrl, config: config}
+func NewInstallDriver(conf *Config) *InstallDriver {
+	installDriver := InstallDriver{conf}
 	return &installDriver
 }
 
 func (d *InstallDriver) Run() {
-	switch d.cloud {
+	switch d.conf.Cloud {
 	case "aws":
 		fmt.Println("Driver starting AWS install flow.")
+		d.awsInstallFlow()
+	case "aws-odf": //TODO: this could be a parameter instead
+		fmt.Println("Driver starting AWS ODF install flow.")
 		d.awsInstallFlow()
 	case "vmware":
 		fmt.Println("Driver starting vmWare install flow.")
@@ -28,37 +29,37 @@ func (d *InstallDriver) Run() {
 		fmt.Println("Driver starting Azure install flow.")
 		d.azureInstallFlow()
 	default:
-		panic(fmt.Errorf("Unsupported cloud install flow selected: %v\n", d.cloud))
+		panic(fmt.Errorf("Unsupported cloud install flow selected: %v\n", d.conf.Cloud))
 	}
 
 }
 
 func (d *InstallDriver) awsInstallFlow() {
 	// Extract and unarchive tools from image
-	ExtractTools(d.config.PullSecretFile, d.config.OutputDir, d.imageUrl)
-	Unarchive(d.config.OutputDir, d.config.OutputDir)
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }
 
 func (d *InstallDriver) vmwareInstallFlow() {
 	// Extract and unarchive tools from image
-	ExtractTools(d.config.PullSecretFile, d.config.OutputDir, d.imageUrl)
-	Unarchive(d.config.OutputDir, d.config.OutputDir)
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 	// Start Bastion tunnel or scp install dir to bastion
 	// TODO
 }
 
 func (d *InstallDriver) alibabaInstallFlow() {
 	// Extract and unarchive tools from image
-	ExtractTools(d.config.PullSecretFile, d.config.OutputDir, d.imageUrl)
-	Unarchive(d.config.OutputDir, d.config.OutputDir)
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 
 	// Extract ccoctl tool
-	ExtractCcoctl(d.config.PullSecretFile, d.config.OutputDir, d.imageUrl)
-	CreateCredentialRequestManifests(d.config.PullSecretFile, d.config.OutputDir, d.imageUrl, d.config.CloudRegion, "alibabacloud")
+	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	CreateCredentialRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "alibabacloud")
 }
 
 func (d *InstallDriver) azureInstallFlow() {
 	// Extract and unarchive tools from image
-	ExtractTools(d.config.PullSecretFile, d.config.OutputDir, d.imageUrl)
-	Unarchive(d.config.OutputDir, d.config.OutputDir)
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }

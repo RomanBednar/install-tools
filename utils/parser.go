@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/manifoldco/promptui"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
 )
 
-func yesNo() bool {
+func userConfirm() bool {
 	prompt := promptui.Select{
 		Label: "Select[Yes/No]",
 		Items: []string{"Yes", "No"},
@@ -26,18 +25,9 @@ func yesNo() bool {
 
 // All configuration is loaded into this structure and then used to parse templates.
 type Config struct {
-	SshPublicKeyFile string
-	PullSecretFile   string
-	ClusterName      string
-	UserName         string
-	OutputDir        string
-
-	SshPublicKey string
-	PullSecret   string
-
-	VmwarePassword string
-
-	CloudRegion string
+	Action, Cloud, ClusterName, UserName, OutputDir, CloudRegion, Image          string
+	SshPublicKeyFile, SshPublicKey, PullSecretFile, PullSecret, ImageTag, Engine string
+	DryRun                                                                       bool
 }
 
 type TemplateParser struct {
@@ -54,16 +44,15 @@ var cloudTemplatesMap = map[string]string{
 	"vmware":  "vmware_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
 	"azure":   "azure_basic.tmpl",
-	//TODO add more templates
 }
 
-func NewTemplateParser(requestedCloud string, data Config) TemplateParser {
-	log.Printf("Creating TemplateParser with cloud: %v\n", requestedCloud)
+func NewTemplateParser(data *Config) TemplateParser {
+	log.Printf("Creating TemplateParser for cloud: %v\n", data.Cloud)
 	log.Printf("TemplateParser data: %v\n", data)
 	templateParser := TemplateParser{}
 
-	templateParser.requestedCloud = requestedCloud
-	templateParser.data = data
+	templateParser.requestedCloud = data.Cloud
+	templateParser.data = *data
 
 	//Flip file paths to string.
 	templateParser.data.SshPublicKey = templateParser.fileToString(data.SshPublicKeyFile, false)
@@ -105,7 +94,7 @@ func (t *TemplateParser) getSupportedClouds() []string {
 
 func (t *TemplateParser) fileToString(file string, compact bool) string {
 	log.Printf("Reading file: %v\n", file)
-	content, err := ioutil.ReadFile(file)
+	content, err := os.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -133,12 +122,13 @@ func (t *TemplateParser) ParseTemplate() {
 	output := filepath.Join(t.data.OutputDir, t.outputFile)
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		log.Printf("Output file %v already exists, overwrite?\n", output)
-		if !yesNo() {
+		if !userConfirm() {
 			log.Fatalf("Aborting.")
 		}
 	}
 
 	//TODO: this probably should not be here - move to main?
+	fmt.Printf("Creating output dir: %v\n", t.data.OutputDir)
 	err := os.MkdirAll(t.data.OutputDir, 0755)
 	if os.IsNotExist(err) {
 		panic(fmt.Errorf("Could not create output dir: %v Error: %v", t.data.OutputDir, err))
@@ -155,6 +145,6 @@ func (t *TemplateParser) ParseTemplate() {
 		panic(err)
 	}
 
-	//TODO: maybe the install config should be backed up? openshift-install binary will destroy it
+	//TODO: maybe the install config should be backed up? openshift-install will destroy it
 
 }

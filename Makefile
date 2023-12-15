@@ -1,12 +1,12 @@
-include ./config/config.env
+include ./config/conf.env
 
 ENTER_CMD = ${ENGINE} run --rm -it --privileged localhost/${IMAGE_TAG} /bin/bash
 DEVEL_CMD = ${ENGINE} run --rm -it -v ./:/app:z --privileged localhost/${IMAGE_TAG} /bin/bash
 
 get-secrets:
 	mkdir -p ./secrets || .
-	cp ${SSH_PUB_KEY_FILE} ./secrets
-	cat ${PULL_SECRET_FILE} | tr -d '[:space:]' > secrets/config.json
+	cp ${sshPublicKeyFile} ./secrets
+	jq 'del(.credsStore, .currentContext)' ${pullSecretFile} | tr -d '[:space:]' > ./secrets/config.json
 
 build:
 	GO111MODULE=on go build -o "$(abspath ./bin/)/install-tool"
@@ -22,3 +22,9 @@ devel: get-secrets
 
 clean:
 	rm -rf ./secrets
+
+
+show-config:
+	echo "Secret file is: ${pullSecretFile}"
+	echo "SSH public key file is: ${sshPublicKeyFile}"
+

@@ -15,7 +15,7 @@
 bin
 
 # Possible output dir for this tool
-output
+_output
 
 # Example config dir
 config
