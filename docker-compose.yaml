@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+        - NEXT_PUBLIC_API_URL=http://backend:8080
+  backend:
+    build: ./api
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    stdin_open: true
+    tty: true
