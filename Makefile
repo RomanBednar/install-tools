@@ -1,7 +1,9 @@
 include ./config/conf.env
+CURRENT_DIR = $(shell pwd)
 
-ENTER_CMD = ${ENGINE} run --rm -it --privileged localhost/${IMAGE_TAG} /bin/bash
-DEVEL_CMD = ${ENGINE} run --rm -it -v ./:/app:z --privileged localhost/${IMAGE_TAG} /bin/bash
+#ENTER_CMD = ${engine} run --rm -it --privileged localhost/${imageTag} /bin/bash
+DEVEL_CMD = ${engine} run --rm -it -v ./:/app:z --privileged localhost/${IMAGE_TAG} /bin/bash
+ENTER_CMD = ${engine} run -it -v ${CURRENT_DIR}:/code -v ${homeDir}:/root -v /var/run/docker.sock:/var/run/docker.sock localhost/${imageTag} /bin/bash
 
 get-secrets:
 	mkdir -p ./secrets || .
@@ -11,10 +13,10 @@ get-secrets:
 build:
 	GO111MODULE=on go build -o "$(abspath ./bin/)/install-tool"
 
-image: get-secrets
-	${ENGINE} build . -t ${IMAGE_TAG}
+image: #get-secrets
+	${engine} build -f Dockerfile -t localhost/${imageTag} .
 
-enter: get-secrets
+enter: #get-secrets
 	${ENTER_CMD} || echo "You need to build the app image first with 'make image'"
 
 devel: get-secrets

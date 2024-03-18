@@ -4,24 +4,18 @@ metadata:
   name: {{ .UserName }}
 platform:
   vsphere:
-    apiVIP: 172.31.250.88
-    cluster: Cluster-1
-    datacenter: SDDC-Datacenter
-    defaultDatastore: WorkloadDatastore
-    ingressVIP: 172.31.250.89
-    network: dev-segment
-    username: {{ .UserName }}@ldap.vmc.ci.openshift.org
+    apiVIP: 192.168.222.88
+    cluster: /DEVQEdatacenter/host/DEVQEcluster
+    datacenter: DEVQEdatacenter
+    defaultDatastore: /DEVQEdatacenter/datastore/vsanDatastore
+    ingressVIP: 192.168.222.89
+    network: devqe-segment-222
+    username: {{ .UserName }}@devqe.ibmc.devcluster.openshift.com
     password: {{ .VmwarePassword }}
-    vCenter: vcenter.sddc-44-236-21-251.vmwarevmc.com
+    vCenter: vcenter.devqe.ibmc.devcluster.openshift.com
 networking:
-  clusterNetwork:
-  - cidr: 10.128.0.0/14
-    hostPrefix: 23
   machineNetwork:
-  - cidr: 172.31.250.0/23
-  networkType: OpenShiftSDN
-  serviceNetwork:
-  - 172.30.0.0/16
+  - cidr: 192.168.222.0/24
 pullSecret: '{{ .PullSecret }}'
 sshKey: |
   {{ .SshPublicKey }}

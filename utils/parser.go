@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/manifoldco/promptui"
+	"golang.org/x/term"
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 	"text/template"
 )
 
@@ -25,9 +27,9 @@ func userConfirm() bool {
 
 // All configuration is loaded into this structure and then used to parse templates.
 type Config struct {
-	Action, Cloud, ClusterName, UserName, OutputDir, CloudRegion, Image          string
-	SshPublicKeyFile, SshPublicKey, PullSecretFile, PullSecret, ImageTag, Engine string
-	DryRun                                                                       bool
+	Action, Cloud, ClusterName, UserName, OutputDir, CloudRegion, Image, VmwarePassword string
+	SshPublicKeyFile, SshPublicKey, PullSecretFile, PullSecret, ImageTag, Engine        string
+	DryRun                                                                              bool
 }
 
 type TemplateParser struct {
@@ -127,6 +129,15 @@ func (t *TemplateParser) ParseTemplate() {
 		}
 	}
 
+	if t.data.Cloud == "vmware" {
+		log.Printf("Are you connected to TwinGate VPN?\n", output)
+		if !userConfirm() {
+			log.Fatalf("Aborting.")
+		}
+		password := passwordPrompt("Please enter password for vcenter (vcenter.devqe.ibmc.devcluster.openshift.com)")
+		t.data.VmwarePassword = password
+	}
+
 	//TODO: this probably should not be here - move to main?
 	fmt.Printf("Creating output dir: %v\n", t.data.OutputDir)
 	err := os.MkdirAll(t.data.OutputDir, 0755)
@@ -146,5 +157,16 @@ func (t *TemplateParser) ParseTemplate() {
 	}
 
 	//TODO: maybe the install config should be backed up? openshift-install will destroy it
+
+}
+
+func passwordPrompt(prompt string) string {
+	fmt.Printf("%s: ", prompt)
+	bytepw, err := term.ReadPassword(syscall.Stdin)
+	if err != nil {
+		os.Exit(1)
+	}
+	fmt.Print("\n")
+	return string(bytepw)
 
 }
