@@ -15,5 +15,7 @@ services:
       - "8080:8080"
     expose:
       - "8080"
+    volumes:
+      - $HOME:/root:ro
     stdin_open: true
     tty: true
