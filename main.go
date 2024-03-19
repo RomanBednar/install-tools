@@ -31,7 +31,6 @@ var (
 
 func init() {
 	cobra.OnInitialize(initializeConfig)
-
 	rootCmd.PersistentFlags().StringP("action", "a", "create", "Action to perform. Valid values are: create, destroy.")
 	viper.BindPFlag("action", rootCmd.PersistentFlags().Lookup("action"))
 
@@ -54,11 +53,25 @@ func init() {
 	rootCmd.PersistentFlags().StringP("cloud-region", "r", "us-east-1", "Cloud region to use for installation.")
 	viper.BindPFlag("cloudregion", rootCmd.PersistentFlags().Lookup("cloud-region"))
 
+	rootCmd.PersistentFlags().StringP("pull-secret", "p", "", "Path to the pull secret file.")
+	viper.BindPFlag("pullsecret", rootCmd.PersistentFlags().Lookup("pull-secret"))
+
 	rootCmd.PersistentFlags().BoolP("dry-run", "d", false, "Dry run - only generate install-config.yaml and manifests, do not install cluster.")
 	viper.BindPFlag("dryrun", rootCmd.PersistentFlags().Lookup("dry-run"))
+
+	rootCmd.PersistentFlags().StringP("config-path", "f", "", "Path to the configuration file (can be used in place of any flags).")
+	viper.BindPFlag("configpath", rootCmd.PersistentFlags().Lookup("config-path"))
 }
 
 func initializeConfig() {
+
+	configFilePath := viper.GetString("configpath")
+	if configFilePath != "" {
+		fmt.Printf("Using custom config path: %s\n", configFilePath)
+		// Prepend the custom config path, so it has the highest priority in viper.
+		configPaths = append([]string{configFilePath}, configPaths...)
+	}
+
 	for _, path := range configPaths {
 		viper.AddConfigPath(path)
 	}
