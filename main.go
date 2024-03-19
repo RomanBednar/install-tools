@@ -107,9 +107,11 @@ func Run(conf *utils.Config) {
 
 	utils.MustDockerLogin(secretsDir, conf.Image)
 
+	// This will create the install-config.yaml file and save to outputDir.
 	parser := utils.NewTemplateParser(conf)
 	parser.ParseTemplate()
 
+	// This will extract the tools from the image, unarchive them and save to outputDir.
 	utils.NewInstallDriver(conf).Run()
 
 	if conf.DryRun {
@@ -117,6 +119,7 @@ func Run(conf *utils.Config) {
 		return
 	}
 
+	// This will start openshift-install.
 	action := viper.GetString("action")
 	switch action {
 	case "create":
