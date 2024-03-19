@@ -1,6 +1,7 @@
 'use server'
 
-export async function addComment(formData: any) {
+export async function saveConfig(formData: any) {
+    console.log('formData:', formData);
     const user = formData.get('username');
     const pwd = formData.get('password');
     // const response = await fetch(`https://api.example.com/articles/${articleId}/comments`, {
@@ -12,7 +13,10 @@ export async function addComment(formData: any) {
     // });
     let result : Response | any;
     try {
-        let responseBody = JSON.stringify({ "username": user, "password": pwd })
+        let responseBody = JSON.stringify({
+            "username": user,
+            "password": pwd
+        })
         console.log('responseBody:', responseBody)
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         console.log("Connecting to:", apiUrl)

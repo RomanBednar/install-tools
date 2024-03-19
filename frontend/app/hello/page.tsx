@@ -15,7 +15,9 @@ export default async function Page() {
 
     return (
         <div>
-            <p>Response:</p>
+            <h1 className="text-3xl font-bold underline">
+                Response:
+            </h1>
             <p>{data}</p>
         </div>
 
