@@ -11,16 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	defaultConfigFilename = "conf"
-
-	// The environment variable prefix of all environment variables bound to command line flags.
-	// For example, if the flag is --cloud, the environment variable will be INST_CLOUD
-	envPrefix = "INST"
-
-	secretsDir = "./secrets"
-)
-
 var (
 	configPaths = []string{
 		// First path here has the highest priority.
@@ -61,6 +51,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringP("config-path", "f", "", "Path to the configuration file (can be used in place of any flags).")
 	viper.BindPFlag("configpath", rootCmd.PersistentFlags().Lookup("config-path"))
+
+	validateFlags()
 }
 
 func initializeConfig() {
@@ -76,7 +68,7 @@ func initializeConfig() {
 		viper.AddConfigPath(path)
 	}
 
-	viper.SetConfigName(defaultConfigFilename)
+	viper.SetConfigName(utils.DefaultConfigFilename)
 	if err := viper.ReadInConfig(); err != nil {
 		// It's okay if there is no a config file
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -85,18 +77,9 @@ func initializeConfig() {
 			log.Fatal(err)
 		}
 	}
-	viper.SetEnvPrefix(envPrefix)
+	viper.SetEnvPrefix(utils.EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
-}
-
-func validateFlags() {
-	if viper.GetString("image") == "" {
-		log.Fatalf("Image must be specified.")
-	}
-	if viper.GetString("cloud") == "" {
-		log.Fatalf("Cloud must be specified.")
-	}
 }
 
 var rootCmd = &cobra.Command{
@@ -110,37 +93,16 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		fmt.Printf("Running with configuration: %#v\n", c)
-		Run(&c)
+		utils.Run(&c)
 	},
 }
 
-func Run(conf *utils.Config) {
-	//os.Exit(0)
-	validateFlags()
-
-	utils.MustDockerLogin(secretsDir, conf.Image)
-
-	// This will create the install-config.yaml file and save to outputDir.
-	parser := utils.NewTemplateParser(conf)
-	parser.ParseTemplate()
-
-	// This will extract the tools from the image, unarchive them and save to outputDir.
-	utils.NewInstallDriver(conf).Run()
-
-	if conf.DryRun {
-		log.Printf("Done.")
-		return
+func validateFlags() {
+	if viper.GetString("image") == "" {
+		log.Fatalf("Image must be specified.")
 	}
-
-	// This will start openshift-install.
-	action := viper.GetString("action")
-	switch action {
-	case "create":
-		utils.InstallCluster(conf.OutputDir, true)
-	case "destroy":
-		utils.DestroyCluster(conf.OutputDir, true)
-	default:
-		log.Fatalf("Unkown action: %v. Exiting.", action)
+	if viper.GetString("cloud") == "" {
+		log.Fatalf("Cloud must be specified.")
 	}
 }
 

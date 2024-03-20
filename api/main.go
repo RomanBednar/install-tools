@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/RomanBednar/install-tools/utils"
+	"gopkg.in/ini.v1"
 	"log"
 	"net/http"
 	"os"
@@ -37,11 +39,32 @@ func runAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
+		fmt.Errorf("error decoding request body: %v", err)
 		http.Error(w, fmt.Sprintf("Error decoding request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	log.Printf("Received action: %#v", action)
+
+	// Run installer
+	var config utils.Config
+	file, err := ini.Load("/tmp/conf.env")
+	if err != nil {
+		fmt.Printf("Failed to load config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Unmarshal the INI file into the struct
+	if err := file.MapTo(&config); err != nil {
+		fmt.Printf("Failed to unmarshal config file: %v\n", err)
+		os.Exit(1)
+	}
+	// Add action to config
+	config.Action = action.Action
+
+	fmt.Printf("Running with configuration: %#v\n", config)
+
+	utils.Run(&config)
 
 	// Respond with success message
 	w.WriteHeader(http.StatusOK)

@@ -1,6 +1,9 @@
 package utils
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+)
 
 type InstallDriver struct {
 	conf *Config
@@ -62,4 +65,32 @@ func (d *InstallDriver) azureInstallFlow() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+}
+
+func Run(conf *Config) {
+	//os.Exit(0)
+
+	MustDockerLogin(SecretsDir, conf.Image)
+
+	// This will create the install-config.yaml file and save to outputDir.
+	parser := NewTemplateParser(conf)
+	parser.ParseTemplate()
+
+	// This will extract the tools from the image, unarchive them and save to outputDir.
+	NewInstallDriver(conf).Run()
+
+	if conf.DryRun {
+		log.Printf("Done.")
+		return
+	}
+
+	// This will start openshift-install.
+	switch conf.Action {
+	case "create":
+		InstallCluster(conf.OutputDir, true)
+	case "destroy":
+		DestroyCluster(conf.OutputDir, true)
+	default:
+		log.Fatalf("Unkown action: %v. Exiting.", conf.Action)
+	}
 }
