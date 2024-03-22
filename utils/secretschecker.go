@@ -3,6 +3,8 @@ package utils
 import (
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,7 +37,8 @@ func getDomainFromURL(imageURL string) string {
 //	return rc == 0
 //}
 
-func MustDockerLogin(pullSecretDir, imageUrl string) bool {
+func MustDockerLogin(pullSecretFile, imageUrl string) bool {
+	pullSecretDir := filepath.Dir(os.ExpandEnv(pullSecretFile))
 	registryDomain := getDomainFromURL(imageUrl)
 	baseCmd := "docker"
 	args := []string{"--config", pullSecretDir, "login", registryDomain}

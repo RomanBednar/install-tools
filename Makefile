@@ -14,7 +14,7 @@ build:
 	GO111MODULE=on go build -o "$(abspath ./bin/)/install-tool"
 
 image: #get-secrets
-	${engine} build -f Dockerfile -t localhost/${imageTag} .
+	${engine} build -f Dockerfile.devel -t localhost/${imageTag} .
 
 enter: #get-secrets
 	${ENTER_CMD} || echo "You need to build the app image first with 'make image'"

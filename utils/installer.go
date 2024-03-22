@@ -70,7 +70,7 @@ func (d *InstallDriver) azureInstallFlow() {
 func Run(conf *Config) {
 	//os.Exit(0)
 
-	MustDockerLogin(SecretsDir, conf.Image)
+	MustDockerLogin(conf.PullSecretFile, conf.Image)
 
 	// This will create the install-config.yaml file and save to outputDir.
 	parser := NewTemplateParser(conf)
