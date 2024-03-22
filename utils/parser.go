@@ -148,21 +148,23 @@ func (t *TemplateParser) ParseTemplate() {
 	tmp := template.Must(template.New(templateFileName).ParseFS(templates.F, templateFileName))
 
 	output := filepath.Join(t.data.OutputDir, t.outputFile)
-	if _, err := os.Stat(output); !os.IsNotExist(err) {
-		log.Printf("Output file %v already exists, overwrite?\n", output)
-		if !userConfirm() {
-			log.Fatalf("Aborting.")
-		}
-	}
 
-	if t.data.Cloud == "vmware" {
-		log.Printf("Are you connected to TwinGate VPN?\n", output)
-		if !userConfirm() {
-			log.Fatalf("Aborting.")
-		}
-		password := passwordPrompt("Please enter password for vcenter (vcenter.devqe.ibmc.devcluster.openshift.com)")
-		t.data.VmwarePassword = password
-	}
+	//TODO: This can work only for CLI - fix it.
+	//if _, err := os.Stat(output); !os.IsNotExist(err) {
+	//	log.Printf("Output file %v already exists, overwrite?\n", output)
+	//	if !userConfirm() {
+	//		log.Fatalf("Aborting.")
+	//	}
+	//}
+	//
+	//if t.data.Cloud == "vmware" {
+	//	log.Printf("Are you connected to TwinGate VPN?\n", output)
+	//	if !userConfirm() {
+	//		log.Fatalf("Aborting.")
+	//	}
+	//	password := passwordPrompt("Please enter password for vcenter (vcenter.devqe.ibmc.devcluster.openshift.com)")
+	//	t.data.VmwarePassword = password
+	//}
 
 	//TODO: this probably should not be here - move to main?
 	fmt.Printf("Creating output dir: %v\n", t.data.OutputDir)

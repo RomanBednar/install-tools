@@ -1,26 +1,26 @@
 'use client'
 
 import { saveConfig } from '@/app/actions/save-config';
-import { SubmitButton } from './ui/submit-button';
 import React, { useState } from 'react';
+import {useFormState, useFormStatus} from 'react-dom';
 import DefaultInput from "@/app/ui/default-input";
 import CloudSelect from "@/app/ui/cloud-selection";
 import DryRunSwitch from "@/app/ui/dryrun-switch";
 import ActionButton from "@/app/ui/action-button";
-import FileViewer from "@/app/ui/file-viewer";
+import clsx from "clsx";
+
 
 
 export default function InstallerForm() {
 
     const [inputValue, setInputValue] = useState('');
 
-    const handleUseDefault = () => {
-        setInputValue('aaa');
-    };
+    const [formState, formAction] = useFormState(saveConfig, {message: "", success: false} );
+    const { pending } = useFormStatus()
 
     return (
         <div>
-            <form action={saveConfig}>
+            <form action={formAction}>
                 <h1 className="py-5 text-3xl font-semibold leading-9 text-gray-900">OpenShift Installer</h1>
                 <div className="space-y-12 md:container md:mx-auto">
                     <div className="border-b border-gray-900/10 pb-12">
@@ -81,7 +81,17 @@ export default function InstallerForm() {
                             <DryRunSwitch/>
                         </div>
                         <div className="mt-6 flex items-center justify-start gap-x-6">
-                            <SubmitButton/>
+
+                            <button formAction={formAction} type="submit" aria-disabled={pending}
+                                    className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                                Save
+                            </button>
+                            <p className={clsx("", {
+                                'text-green-600': formState?.success,
+                                'text-red-600': formState?.success,
+                            })}>
+                                {formState?.message}
+                            </p>
                         </div>
                     </div>
 

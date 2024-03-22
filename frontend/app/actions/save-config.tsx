@@ -1,6 +1,6 @@
 'use server'
 
-export async function saveConfig(formData: any) {
+export async function saveConfig(previousState: any, formData: { get: (arg0: string) => any; }) {
     console.log('formData:', formData);
     const username = formData.get('username');
     const sshPublicKeyFile = formData.get('sshPublicKeyFile');
@@ -12,9 +12,9 @@ export async function saveConfig(formData: any) {
     const cloud = formData.get('cloud');
     const dryRun = formData.get('dryRun');
 
-    let result : Response | any;
+    let result : {message: string, success: boolean};
     try {
-        let responseBody = JSON.stringify({
+        let requestBody = JSON.stringify({
             "username": username,
             "sshPublicKeyFile": sshPublicKeyFile,
             "pullSecretFile": pullSecretFile,
@@ -25,21 +25,18 @@ export async function saveConfig(formData: any) {
             "cloud": cloud,
             "dryRun": dryRun? "true" : "false",
         })
-        console.log('responseBody:', responseBody)
+        console.log('requestBody:', requestBody)
         const apiUrl = process.env.NEXT_PUBLIC_API_URL;
         console.log("Connecting to:", apiUrl)
         const response = await fetch(`${apiUrl}/save`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: responseBody,
+            body: requestBody,
         });
-        result = response;
+        result = {message: "OK", success: true};
+
     } catch (error) {
-        console.error('Error:', error);
-        result = error;
+        result = {message: JSON.stringify(error), success: true};
     }
-
-    console.log('Result:', result);
-
-    return JSON.stringify(result);
+    return result
 }
