@@ -1,0 +1,11 @@
+FROM golang:1.22-alpine AS build
+
+COPY . /app
+WORKDIR /app/api
+RUN go build -o backend
+
+FROM alpine:latest
+COPY --from=build /app /app
+WORKDIR /app/api
+EXPOSE 8080
+CMD ["./backend"]

@@ -7,6 +7,7 @@ import DefaultInput from "@/app/ui/default-input";
 import CloudSelect from "@/app/ui/cloud-selection";
 import DryRunSwitch from "@/app/ui/dryrun-switch";
 import ActionButton from "@/app/ui/action-button";
+import FileViewer from "@/app/ui/file-viewer";
 
 
 export default function InstallerForm() {
@@ -100,6 +101,7 @@ export default function InstallerForm() {
             <div className="space-y-12 md:container md:mx-auto">
                 <div className="border-b border-gray-900/10 pb-12">
                     <h2 className="text-base font-semibold leading-7 text-gray-900">Progress: </h2>
+
                 </div>
             </div>
         </div>

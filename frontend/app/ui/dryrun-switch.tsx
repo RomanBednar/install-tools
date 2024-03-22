@@ -7,7 +7,7 @@ function DryRunSwitch() {
             <div className="sm:col-span-4">
                 <legend className="text-sm font-semibold leading-6 text-gray-900">Dry run
                 </legend>
-                <p className="mt-1 text-sm leading-6 text-gray-600">Only prepare configuration files and don't run openshift-install.</p>
+                <p className="mt-1 text-sm leading-6 text-gray-600">Only prepare configuration files and do not run openshift-install.</p>
                 <div className="m-2 flex">
                     <label htmlFor="dryRun" className="block text-sm font-medium leading-6 text-gray-900 relative">
                         Enable

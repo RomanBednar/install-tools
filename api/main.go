@@ -11,11 +11,22 @@ import (
 	"strings"
 )
 
+var (
+	filePath   string
+	fileEvents = make(chan string)
+)
+
 func main() {
 	log.Println("Starting server on :8080")
 	http.HandleFunc("/save", saveInstallerConfig)
 	http.HandleFunc("/action", runAction)
+	//http.HandleFunc("/log", fileHandler)
 	http.HandleFunc("/hello", helloHandler)
+
+	filePath = "/tmp/output/.openshift_install.log" //TODO: make this configurable
+
+	//go fileWatcher()
+
 	http.ListenAndServe(":8080", nil)
 }
 
@@ -149,3 +160,64 @@ dryRun=%s`,
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "Config stored successfully")
 }
+
+//func fileWatcher() {
+//	fmt.Printf("Watching file: %s\n", filePath)
+//	watcher, err := fsnotify.NewWatcher()
+//	if err != nil {
+//		fmt.Println("Error:", err)
+//		return
+//	}
+//	defer watcher.Close()
+//
+//	done := make(chan bool)
+//
+//	go func() {
+//		for {
+//			select {
+//			case event := <-watcher.Events:
+//				if event.Op&fsnotify.Write == fsnotify.Write {
+//					fileEvents <- event.Name
+//				}
+//			case err := <-watcher.Errors:
+//				fmt.Println("Error:", err)
+//			}
+//		}
+//	}()
+//
+//	err = watcher.Add(filePath)
+//	if err != nil {
+//		fmt.Println("Error:", err)
+//		return
+//	}
+//	<-done
+//}
+//
+//func fileHandler(w http.ResponseWriter, r *http.Request) {
+//	w.Header().Set("Content-Type", "text/event-stream")
+//	w.Header().Set("Cache-Control", "no-cache")
+//	w.Header().Set("Connection", "keep-alive")
+//
+//	for {
+//		select {
+//		case event := <-fileEvents:
+//			file, err := os.Open(event)
+//			if err != nil {
+//				http.Error(w, "Error opening file", http.StatusInternalServerError)
+//				return
+//			}
+//			defer file.Close()
+//
+//			buf := make([]byte, 1024)
+//			for {
+//				n, err := file.Read(buf)
+//				if err != nil {
+//					break
+//				}
+//				w.Write(buf[:n])
+//				w.(http.Flusher).Flush()
+//				time.Sleep(1 * time.Second) // Adjust frequency of updates
+//			}
+//		}
+//	}
+//}
