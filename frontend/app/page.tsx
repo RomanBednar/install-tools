@@ -9,8 +9,6 @@ import DryRunSwitch from "@/app/ui/dryrun-switch";
 import ActionButton from "@/app/ui/action-button";
 import clsx from "clsx";
 
-
-
 export default function InstallerForm() {
 
     const [inputValue, setInputValue] = useState('');
@@ -87,8 +85,9 @@ export default function InstallerForm() {
                                 Save
                             </button>
                             <p className={clsx("", {
-                                'text-green-600': formState?.success,
-                                'text-red-600': formState?.success,
+                                'text-green-600': formState?.success === true,
+                                'text-red-600': formState?.success === false,
+                                'hidden': pending,
                             })}>
                                 {formState?.message}
                             </p>
@@ -110,7 +109,7 @@ export default function InstallerForm() {
 
             <div className="space-y-12 md:container md:mx-auto">
                 <div className="border-b border-gray-900/10 pb-12">
-                    <h2 className="text-base font-semibold leading-7 text-gray-900">Progress: </h2>
+                    <h2 className="text-base font-semibold leading-7 text-gray-900">Installer log: </h2>
 
                 </div>
             </div>

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,16 +17,16 @@ var (
 	fileEvents = make(chan string)
 )
 
+const (
+	locationFilePath = "/tmp/.cache/config-location"
+)
+
 func main() {
 	log.Println("Starting server on :8080")
 	http.HandleFunc("/save", saveInstallerConfig)
 	http.HandleFunc("/action", runAction)
-	//http.HandleFunc("/log", fileHandler)
+	http.HandleFunc("/log", logFileHandler)
 	http.HandleFunc("/hello", helloHandler)
-
-	filePath = "/tmp/output/.openshift_install.log" //TODO: make this configurable
-
-	//go fileWatcher()
 
 	http.ListenAndServe(":8080", nil)
 }
@@ -68,7 +69,7 @@ func runAction(w http.ResponseWriter, r *http.Request) {
 	// Unmarshal the INI file into the struct
 	if err := file.MapTo(&config); err != nil {
 		fmt.Printf("Failed to unmarshal config file: %v\n", err)
-		os.Exit(1)
+		http.Error(w, fmt.Sprintf("Failed to unmarshal config file: %v", err), http.StatusInternalServerError)
 	}
 	// Add action to config
 	config.Action = action.Action
@@ -156,68 +157,61 @@ dryRun=%s`,
 		return
 	}
 
+	// Store the config location in a file
+	if err := os.MkdirAll(filepath.Dir(locationFilePath), 0770); err != nil {
+		fmt.Errorf("error creating cache directory: %v", err)
+		http.Error(w, fmt.Sprintf("Error creating cache directory: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Storing config location to: %v\n", locationFilePath)
+	locationFile, err := os.OpenFile(locationFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Errorf("error opening config-location file: %v", err)
+		http.Error(w, fmt.Sprintf("Error opening config-location file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := fmt.Fprintf(
+		locationFile,
+		installerConfig.OutputDir,
+	); err != nil {
+		fmt.Errorf("error writing to config-location file: %v", err)
+		http.Error(w, fmt.Sprintf("Error writing to conf.env file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	// Respond with success message
 	w.WriteHeader(http.StatusOK)
+
 	fmt.Fprintln(w, "Config stored successfully")
 }
 
-//func fileWatcher() {
-//	fmt.Printf("Watching file: %s\n", filePath)
-//	watcher, err := fsnotify.NewWatcher()
-//	if err != nil {
-//		fmt.Println("Error:", err)
-//		return
-//	}
-//	defer watcher.Close()
-//
-//	done := make(chan bool)
-//
-//	go func() {
-//		for {
-//			select {
-//			case event := <-watcher.Events:
-//				if event.Op&fsnotify.Write == fsnotify.Write {
-//					fileEvents <- event.Name
-//				}
-//			case err := <-watcher.Errors:
-//				fmt.Println("Error:", err)
-//			}
-//		}
-//	}()
-//
-//	err = watcher.Add(filePath)
-//	if err != nil {
-//		fmt.Println("Error:", err)
-//		return
-//	}
-//	<-done
-//}
-//
-//func fileHandler(w http.ResponseWriter, r *http.Request) {
-//	w.Header().Set("Content-Type", "text/event-stream")
-//	w.Header().Set("Cache-Control", "no-cache")
-//	w.Header().Set("Connection", "keep-alive")
-//
-//	for {
-//		select {
-//		case event := <-fileEvents:
-//			file, err := os.Open(event)
-//			if err != nil {
-//				http.Error(w, "Error opening file", http.StatusInternalServerError)
-//				return
-//			}
-//			defer file.Close()
-//
-//			buf := make([]byte, 1024)
-//			for {
-//				n, err := file.Read(buf)
-//				if err != nil {
-//					break
-//				}
-//				w.Write(buf[:n])
-//				w.(http.Flusher).Flush()
-//				time.Sleep(1 * time.Second) // Adjust frequency of updates
-//			}
-//		}
-//	}
-//}
+func logFileHandler(w http.ResponseWriter, r *http.Request) {
+
+	// Ensure the request method is GET
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Load config file location from cache.
+	locationFile, err := os.ReadFile(locationFilePath)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading config location file: %v", err), http.StatusInternalServerError)
+		return
+	}
+	logFile := filepath.Join(string(locationFile), "/.openshift_install.log")
+
+	// Read the contents of the log file
+	fmt.Printf("Reading log file from: %v\n", logFile)
+	fileContents, err := os.ReadFile(logFile)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error reading log file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Write the file contents as the response body
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write(fileContents)
+}

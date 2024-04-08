@@ -36,7 +36,7 @@ export async function saveConfig(previousState: any, formData: { get: (arg0: str
         result = {message: "OK", success: true};
 
     } catch (error) {
-        result = {message: JSON.stringify(error), success: true};
+        result = {message: JSON.stringify(error), success: false};
     }
     return result
 }
