@@ -52,7 +52,6 @@ func init() {
 	rootCmd.PersistentFlags().StringP("config-path", "f", "", "Path to the configuration file (can be used in place of any flags).")
 	viper.BindPFlag("configpath", rootCmd.PersistentFlags().Lookup("config-path"))
 
-	validateFlags()
 }
 
 func initializeConfig() {
@@ -93,6 +92,7 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		fmt.Printf("Running with configuration: %#v\n", c)
+		validateFlags()
 		utils.Run(&c)
 	},
 }
