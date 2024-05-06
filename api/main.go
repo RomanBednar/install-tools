@@ -39,7 +39,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 func runAction(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %#v", r)
 	if r.Method != http.MethodPost {
-		fmt.Errorf("method not allowed: %v", r.Method)
+		fmt.Printf("method not allowed: %v", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -51,16 +51,29 @@ func runAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&action); err != nil {
-		fmt.Errorf("error decoding request body: %v", err)
+		fmt.Printf("error decoding request body: %v", err)
 		http.Error(w, fmt.Sprintf("Error decoding request body: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	log.Printf("Received action: %#v", action)
 
+	log.Printf("Loading config file location from: %v\n", locationFilePath)
+	configFilePath, err := os.ReadFile(locationFilePath)
+	if err != nil {
+		fmt.Printf("error reading config location file: %v", err)
+	}
+
+	configFile, err := os.ReadFile(string(configFilePath))
+	if err != nil {
+		fmt.Printf("error reading config file: %v", err)
+		http.Error(w, fmt.Sprintf("Error reading config file: %v", err), http.StatusInternalServerError)
+		return
+	}
+
 	// Run installer
 	var config utils.Config
-	file, err := ini.Load("/tmp/conf.env")
+	file, err := ini.Load(configFile)
 	if err != nil {
 		fmt.Printf("Failed to load config file: %v\n", err)
 		os.Exit(1)
@@ -100,7 +113,7 @@ func saveInstallerConfig(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Received request to store installerConfig: %#v", r)
 	if r.Method != http.MethodPost {
-		fmt.Errorf("method not allowed: %v", r.Method)
+		fmt.Printf("method not allowed: %v", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -115,14 +128,21 @@ func saveInstallerConfig(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Storing config: %#v", installerConfig)
 
-	file, err := os.OpenFile("/tmp/conf.env", os.O_WRONLY|os.O_CREATE, 0644)
+	configFilePath := filepath.Join(installerConfig.OutputDir, "conf.env")
+	if err := os.MkdirAll(filepath.Dir(configFilePath), 0770); err != nil {
+		fmt.Printf("error creating output directory: %v", err)
+		http.Error(w, fmt.Sprintf("Error creating output directory: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	file, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Errorf("error opening conf.env file: %v", err)
+		fmt.Printf("error opening conf.env file: %v", err)
 		http.Error(w, fmt.Sprintf("Error opening conf.env file: %v", err), http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
-	log.Printf("Saved config to file: %v", installerConfig.OutputDir)
+	log.Printf("Saved config to file: %v", configFilePath)
 
 	format := fmt.Sprintf(`
 userName=%s
@@ -159,7 +179,7 @@ dryRun=%s`,
 
 	// Store the config location in a file
 	if err := os.MkdirAll(filepath.Dir(locationFilePath), 0770); err != nil {
-		fmt.Errorf("error creating cache directory: %v", err)
+		fmt.Printf("error creating cache directory: %v", err)
 		http.Error(w, fmt.Sprintf("Error creating cache directory: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -167,16 +187,16 @@ dryRun=%s`,
 	log.Printf("Storing config location to: %v\n", locationFilePath)
 	locationFile, err := os.OpenFile(locationFilePath, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		fmt.Errorf("error opening config-location file: %v", err)
+		fmt.Printf("error opening config-location file: %v", err)
 		http.Error(w, fmt.Sprintf("Error opening config-location file: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := fmt.Fprintf(
 		locationFile,
-		installerConfig.OutputDir,
+		configFilePath,
 	); err != nil {
-		fmt.Errorf("error writing to config-location file: %v", err)
+		fmt.Printf("error writing to config-location file: %v", err)
 		http.Error(w, fmt.Sprintf("Error writing to conf.env file: %v", err), http.StatusInternalServerError)
 		return
 	}
