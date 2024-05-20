@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/codeclysm/extract"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -88,11 +87,16 @@ func Unarchive(outputDir, targetDir string) {
 	tarballs := findTarballs(outputDir)
 	for _, tarball := range tarballs {
 		log.Printf("Extracting: %v", tarball)
-		data, _ := ioutil.ReadFile(tarball)
+		data, err := os.ReadFile(tarball)
+		if err != nil {
+			log.Fatalf("Could not read tarball %s: %v", tarball, err)
+		}
 		buffer := bytes.NewBuffer(data)
-		extract.Gz(context.TODO(), buffer, targetDir, nil)
+		err = extract.Gz(context.TODO(), buffer, targetDir, nil)
+		if err != nil {
+			log.Fatalf("Could not extract tarball %s: %v", tarball, err)
+		}
 	}
-	//TODO: handle errors
 }
 
 func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
