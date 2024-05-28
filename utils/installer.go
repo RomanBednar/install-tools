@@ -19,6 +19,9 @@ func (d *InstallDriver) Run() {
 	case "aws":
 		fmt.Println("Driver starting AWS install flow.")
 		d.awsInstallFlow()
+	case "aws-sts":
+		fmt.Println("Driver starting AWS STS install flow.")
+		d.awsSTSInstallFlow()
 	case "aws-odf": //TODO: this could be a parameter instead
 		fmt.Println("Driver starting AWS ODF install flow.")
 		d.awsInstallFlow()
@@ -43,6 +46,16 @@ func (d *InstallDriver) awsInstallFlow() {
 	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }
 
+func (d *InstallDriver) awsSTSInstallFlow() {
+	// Extract and unarchive tools from image
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+
+	// Extract ccoctl tool
+	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	CreateCredentialRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "aws")
+}
+
 func (d *InstallDriver) vmwareInstallFlow() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
@@ -51,6 +64,7 @@ func (d *InstallDriver) vmwareInstallFlow() {
 	// TODO
 }
 
+// Deprecated
 func (d *InstallDriver) alibabaInstallFlow() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)

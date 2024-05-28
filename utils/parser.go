@@ -53,6 +53,7 @@ type TemplateParser struct {
 
 var cloudTemplatesMap = map[string]string{
 	"aws":     "aws_basic.tmpl",
+	"aws-sts": "aws_sts.tmpl",
 	"aws-odf": "aws_odf.tmpl",
 	"vmware":  "vmware_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
