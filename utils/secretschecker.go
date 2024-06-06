@@ -42,7 +42,7 @@ func MustContainerEngineLogin(pullSecretFile, imageUrl, engine string) bool {
 	registryDomain := getDomainFromURL(imageUrl)
 	baseCmd := engine
 	args := []string{"--config", pullSecretDir, "login", registryDomain}
-	log.Printf("Verifying we can login with docker to: %v", registryDomain)
+	log.Printf("Verifying we can login with %v to: %v", engine, registryDomain)
 	_, _, rc := runCommand(baseCmd, "", args...)
 
 	return rc == 0

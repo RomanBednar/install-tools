@@ -73,6 +73,7 @@ func getCcoImageDigest(pullSecretFile, outputDir, imageUrl string) string {
 	return strings.TrimSuffix(out, "\n")
 }
 
+// Deprecated: findTarballs function is deprecated and will be removed in the future.
 func findTarballs(outputDir string) []string {
 	baseCmd := "find"
 	args := []string{outputDir, "-name", "*.tar.*"}
@@ -82,6 +83,7 @@ func findTarballs(outputDir string) []string {
 	return strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 }
 
+// Deprecated: Unarchive function is deprecated and will be removed in the future.
 func Unarchive(outputDir, targetDir string) {
 	log.Printf("Unarchiving tarballs from: %v to: %v", outputDir, targetDir)
 	tarballs := findTarballs(outputDir)
@@ -99,12 +101,14 @@ func Unarchive(outputDir, targetDir string) {
 	}
 }
 
+// ExtractTools function extracts openshift-install and oc binaries from the image - this uses locally available oc binary
+// which means it has to be run first and any consecutive commands should use the extracted oc binary.
 func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
 	secret, err := filepath.Abs(os.ExpandEnv(pullSecretFile))
 	if err != nil {
 		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
 	}
-	baseCmd := "oc" //This has to be oc binary already present system wide, after this the extracted "./oc" should be used.
+	baseCmd := "oc" //This has to be oc binary already present on the system because we don't have it extracted yet.
 
 	//args := []string{"adm", "-a", secret, "release", "extract", "--tools", imageUrl}
 

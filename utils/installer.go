@@ -17,68 +17,68 @@ func NewInstallDriver(conf *Config) *InstallDriver {
 func (d *InstallDriver) Run() {
 	switch d.conf.Cloud {
 	case "aws":
-		fmt.Println("Driver starting AWS install flow.")
-		d.awsInstallFlow()
+		fmt.Println("Driver is preparing AWS installation.")
+		d.awsPreparation()
 	case "aws-sts":
-		fmt.Println("Driver starting AWS STS install flow.")
-		d.awsSTSInstallFlow()
-	case "aws-odf": //TODO: this could be a parameter instead
-		fmt.Println("Driver starting AWS ODF install flow.")
-		d.awsInstallFlow()
+		fmt.Println("Driver is preparing AWS STS installation.")
+		d.awsSTSPreparation()
+	case "aws-odf": //TODO: this should be a parameter instead
+		fmt.Println("Driver is preparing AWS ODF installation.")
+		d.awsPreparation()
 	case "vmware":
-		fmt.Println("Driver starting vmWare install flow.")
-		d.vmwareInstallFlow()
+		fmt.Println("Driver is preparing vmWare installation.")
+		d.vmwarePreparation()
 	case "alibaba":
-		fmt.Println("Driver starting Alibaba install flow.")
-		d.alibabaInstallFlow()
+		fmt.Println("Driver is preparing Alibaba installation.")
+		d.alibabaPreparation()
 	case "azure":
-		fmt.Println("Driver starting Azure install flow.")
-		d.azureInstallFlow()
+		fmt.Println("Driver is preparing Azure installation.")
+		d.azurePreparation()
 	default:
-		panic(fmt.Errorf("Unsupported cloud install flow selected: %v\n", d.conf.Cloud))
+		panic(fmt.Errorf("Unsupported cloud selected: %v\n", d.conf.Cloud))
 	}
 
 }
 
-func (d *InstallDriver) awsInstallFlow() {
+func (d *InstallDriver) awsPreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }
 
-func (d *InstallDriver) awsSTSInstallFlow() {
+func (d *InstallDriver) awsSTSPreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 
 	// Extract ccoctl tool
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	CreateCredentialRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "aws")
 }
 
-func (d *InstallDriver) vmwareInstallFlow() {
+func (d *InstallDriver) vmwarePreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+	//Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 	// Start Bastion tunnel or scp install dir to bastion
 	// TODO
 }
 
 // Deprecated
-func (d *InstallDriver) alibabaInstallFlow() {
+func (d *InstallDriver) alibabaPreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 
 	// Extract ccoctl tool
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	CreateCredentialRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "alibabacloud")
 }
 
-func (d *InstallDriver) azureInstallFlow() {
+func (d *InstallDriver) azurePreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }
 
 func Run(conf *Config) {
@@ -98,7 +98,7 @@ func Run(conf *Config) {
 		return
 	}
 
-	// This will start openshift-install.
+	// This will start cluster installation/uninstallation.
 	switch conf.Action {
 	case "create":
 		InstallCluster(conf.OutputDir, true)
