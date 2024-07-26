@@ -19,6 +19,7 @@ var (
 
 const (
 	locationFilePath = "/tmp/.cache/config-location"
+	defaultEngine    = "podman" // users are not allowed to change this now, requires container environment changes
 )
 
 func main() {
@@ -153,7 +154,8 @@ clusterName=%s
 image=%s
 cloudRegion=%s
 cloud=%s
-dryRun=%s`,
+dryRun=%s
+engine=%s`,
 		installerConfig.Username,
 		installerConfig.SshPublicKeyFile,
 		installerConfig.PullSecretFile,
@@ -163,6 +165,7 @@ dryRun=%s`,
 		installerConfig.CloudRegion,
 		installerConfig.Cloud,
 		installerConfig.DryRun,
+		defaultEngine,
 	)
 
 	format = strings.TrimSpace(format)

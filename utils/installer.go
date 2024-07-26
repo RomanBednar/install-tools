@@ -86,21 +86,23 @@ func Run(conf *Config) {
 
 	MustContainerEngineLogin(conf.PullSecretFile, conf.Image, conf.Engine)
 
-	// This will create the install-config.yaml file and save to outputDir.
-	parser := NewTemplateParser(conf)
-	parser.ParseTemplate()
-
-	// This will extract the tools from the image, unarchive them and save to outputDir.
-	NewInstallDriver(conf).Run()
-
-	if conf.DryRun {
-		log.Printf("Done.")
-		return
-	}
-
 	// This will start cluster installation/uninstallation.
 	switch conf.Action {
 	case "create":
+		// This will create the install-config.yaml file and save to outputDir.
+		parser := NewTemplateParser(conf)
+		parser.ParseTemplate()
+
+		// This will extract the tools from the image, unarchive them and save to outputDir.
+		NewInstallDriver(conf).Run()
+
+		// Stop here if dry run is requested.
+		if conf.DryRun {
+			log.Printf("Done.")
+			return
+		}
+
+		// This will create the cluster.
 		InstallCluster(conf.OutputDir, true)
 	case "destroy":
 		DestroyCluster(conf.OutputDir, true)

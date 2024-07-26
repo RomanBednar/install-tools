@@ -104,6 +104,9 @@ func validateFlags() {
 	if viper.GetString("cloud") == "" {
 		log.Fatalf("Cloud must be specified.")
 	}
+	if viper.GetBool("dryrun") && viper.GetString("action") != "create" {
+		log.Fatalf("Dry run can only be used with create action.")
+	}
 }
 
 func main() {

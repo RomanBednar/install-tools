@@ -1,9 +1,8 @@
 # How to use this tool
 
 1. Install required dependencies
-   * docker
+   * podman
    * oc
-   * jq
 
 2. Configure installer tool
 
@@ -25,16 +24,11 @@
    imageTag=install-tools:latest
    engine=docker
    ```
-   
-3. Gather all secrets, this will copy ssh keys and pull secret under ./secrets
-```
-make get-secrets
-```
 
 4. Start the installation:
 
 ```
-go run main.go --action create --cloud aws --image quay.io/openshift-release-dev/ocp-release:4.10.0-rc.2-x86_64 --outputdir /tmp/installdir
+go run main.go --action create  --cloud aws --image registry.ci.openshift.org/ocp/release:4.17.0-0.ci-2024-07-25-020703 -o ~/openshift/clusters/aws/cluster-01 
 ```
 
 # Obtaining pull secrets
@@ -82,10 +76,8 @@ go run main.go --action create --cloud aws --image quay.io/openshift-release-dev
 
 4. Set `pullSecretFile` in your config file to point to the secrets file you created.
 
-## TODO & known issues
+## Known issues & future work
 
 * create config file interactively - ask for values and save them to config/config.env or config/config.toml
 * add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
-* handle pull secret file better - parse it directly from docker conf.json to install template, so it does not have to be copied to temporary file just to get rid of spaces
-* for some reason docker can store `"quay.io":{}` in its config.json which will break openshift-install if this lands in `pullSecret` - handle this case
-* explore how to run everything in docker, dind seems to work fine when socket is mounted: docker run -it -v /var/run/docker.sock:/var/run/docker.sock docker:dind sh
+* sometimes docker/podman adds `"quay.io":{}` into `config.json` which will break openshift-install if this lands in `pullSecret`
