@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/RomanBednar/install-tools/templates"
 	"github.com/manifoldco/promptui"
+	"golang.org/x/term"
 	"log"
 	"os"
 	"path/filepath"
+	"syscall"
 	"text/template"
 )
 
@@ -25,21 +28,32 @@ func userConfirm() bool {
 
 // All configuration is loaded into this structure and then used to parse templates.
 type Config struct {
-	Action, Cloud, ClusterName, UserName, OutputDir, CloudRegion, Image          string
-	SshPublicKeyFile, SshPublicKey, PullSecretFile, PullSecret, ImageTag, Engine string
-	DryRun                                                                       bool
+	Action           string `ini:"action"`
+	Cloud            string `ini:"cloud"`
+	ClusterName      string `ini:"clusterName"`
+	UserName         string `ini:"userName"`
+	OutputDir        string `ini:"outputDir"`
+	CloudRegion      string `ini:"cloudRegion"`
+	Image            string `ini:"image"`
+	VmwarePassword   string `ini:"vmwarePassword"`
+	SshPublicKeyFile string `ini:"sshPublicKeyFile"`
+	SshPublicKey     string `ini:"sshPublicKey"`
+	PullSecretFile   string `ini:"pullSecretFile"`
+	PullSecret       string `ini:"pullSecret"`
+	Engine           string `ini:"engine"`
+	DryRun           bool   `ini:"dryRun"`
 }
 
 type TemplateParser struct {
 	data              Config
 	requestedCloud    string
-	templateDir       string
 	outputFile        string
 	cloudTemplatesMap map[string]string
 }
 
 var cloudTemplatesMap = map[string]string{
 	"aws":     "aws_basic.tmpl",
+	"aws-sts": "aws_sts.tmpl",
 	"aws-odf": "aws_odf.tmpl",
 	"vmware":  "vmware_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
@@ -48,7 +62,7 @@ var cloudTemplatesMap = map[string]string{
 
 func NewTemplateParser(data *Config) TemplateParser {
 	log.Printf("Creating TemplateParser for cloud: %v\n", data.Cloud)
-	log.Printf("TemplateParser data: %v\n", data)
+	log.Printf("TemplateParser data: %#v\n", data)
 	templateParser := TemplateParser{}
 
 	templateParser.requestedCloud = data.Cloud
@@ -57,9 +71,6 @@ func NewTemplateParser(data *Config) TemplateParser {
 	//Flip file paths to string.
 	templateParser.data.SshPublicKey = templateParser.fileToString(data.SshPublicKeyFile, false)
 	templateParser.data.PullSecret = templateParser.fileToString(data.PullSecretFile, true)
-
-	//Base directory for templates.
-	templateParser.templateDir = "templates/"
 
 	//Output file name.
 	templateParser.outputFile = "install-config.yaml"
@@ -70,16 +81,33 @@ func NewTemplateParser(data *Config) TemplateParser {
 	return templateParser
 }
 
-func (t *TemplateParser) getTemplatePath(name string) string {
-	return t.templateDir + t.cloudTemplatesMap[name]
+func (t *TemplateParser) getTemplatePath(filename string) string {
+	dir, error := templates.F.ReadDir(".")
+	if error != nil {
+		panic(fmt.Errorf("Template not found: %v\n", error))
+	}
+
+	// Find the file
+	var absPath string
+	for _, file := range dir {
+		if file.Name() == filename {
+			absPath, err := filepath.Abs(file.Name())
+			if err != nil {
+				panic(fmt.Errorf("Template not found: %v\n", err))
+			}
+			return absPath
+		}
+	}
+	return absPath
 }
 
 func (t *TemplateParser) getTemplateName(name string) string {
-	fmt.Printf("Searching for template with name: %#v", name)
-	templateName := t.cloudTemplatesMap[name]
-	if templateName == "" {
+	fmt.Printf("Searching template for: %#v\n", name)
+	templateName, ok := t.cloudTemplatesMap[name]
+	if templateName == "" || !ok {
 		panic(fmt.Errorf("Template not found for requested cloud: %v\nUse one of: %q", name, t.getSupportedClouds()))
 	}
+	fmt.Printf("Found template: %s\n", templateName)
 
 	return templateName
 }
@@ -94,7 +122,8 @@ func (t *TemplateParser) getSupportedClouds() []string {
 
 func (t *TemplateParser) fileToString(file string, compact bool) string {
 	log.Printf("Reading file: %v\n", file)
-	content, err := os.ReadFile(file)
+	expandedFilePath := os.ExpandEnv(file)
+	content, err := os.ReadFile(expandedFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,19 +142,30 @@ func (t *TemplateParser) fileToString(file string, compact bool) string {
 }
 
 func (t *TemplateParser) ParseTemplate() {
-	templatePath := t.getTemplatePath(t.requestedCloud)
-	templateName := t.getTemplateName(t.requestedCloud)
-	log.Printf("Using template: %v with data: %+v\n", templatePath, t.data)
+	templateFileName := t.getTemplateName(t.requestedCloud)
 
-	template := template.Must(template.New(templateName).ParseFiles(templatePath))
+	log.Printf("Using template: %v with data: %+v\n", templateFileName, t.data)
+
+	tmp := template.Must(template.New(templateFileName).ParseFS(templates.F, templateFileName))
 
 	output := filepath.Join(t.data.OutputDir, t.outputFile)
-	if _, err := os.Stat(output); !os.IsNotExist(err) {
-		log.Printf("Output file %v already exists, overwrite?\n", output)
-		if !userConfirm() {
-			log.Fatalf("Aborting.")
-		}
-	}
+
+	//TODO: This can work only for CLI - fix it.
+	//if _, err := os.Stat(output); !os.IsNotExist(err) {
+	//	log.Printf("Output file %v already exists, overwrite?\n", output)
+	//	if !userConfirm() {
+	//		log.Fatalf("Aborting.")
+	//	}
+	//}
+	//
+	//if t.data.Cloud == "vmware" {
+	//	log.Printf("Are you connected to TwinGate VPN?\n", output)
+	//	if !userConfirm() {
+	//		log.Fatalf("Aborting.")
+	//	}
+	//	password := passwordPrompt("Please enter password for vcenter (vcenter.devqe.ibmc.devcluster.openshift.com)")
+	//	t.data.VmwarePassword = password
+	//}
 
 	//TODO: this probably should not be here - move to main?
 	fmt.Printf("Creating output dir: %v\n", t.data.OutputDir)
@@ -140,11 +180,22 @@ func (t *TemplateParser) ParseTemplate() {
 	}
 	defer f.Close()
 
-	err = template.Execute(f, t.data)
+	err = tmp.Execute(f, t.data)
 	if err != nil {
 		panic(err)
 	}
 
 	//TODO: maybe the install config should be backed up? openshift-install will destroy it
+
+}
+
+func passwordPrompt(prompt string) string {
+	fmt.Printf("%s: ", prompt)
+	bytepw, err := term.ReadPassword(syscall.Stdin)
+	if err != nil {
+		os.Exit(1)
+	}
+	fmt.Print("\n")
+	return string(bytepw)
 
 }

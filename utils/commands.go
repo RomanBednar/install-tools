@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/codeclysm/extract"
-	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -73,6 +73,7 @@ func getCcoImageDigest(pullSecretFile, outputDir, imageUrl string) string {
 	return strings.TrimSuffix(out, "\n")
 }
 
+// Deprecated: findTarballs function is deprecated and will be removed in the future.
 func findTarballs(outputDir string) []string {
 	baseCmd := "find"
 	args := []string{outputDir, "-name", "*.tar.*"}
@@ -82,30 +83,41 @@ func findTarballs(outputDir string) []string {
 	return strings.Split(strings.TrimSuffix(out, "\n"), "\n")
 }
 
+// Deprecated: Unarchive function is deprecated and will be removed in the future.
 func Unarchive(outputDir, targetDir string) {
 	log.Printf("Unarchiving tarballs from: %v to: %v", outputDir, targetDir)
 	tarballs := findTarballs(outputDir)
 	for _, tarball := range tarballs {
 		log.Printf("Extracting: %v", tarball)
-		data, _ := ioutil.ReadFile(tarball)
+		data, err := os.ReadFile(tarball)
+		if err != nil {
+			log.Fatalf("Could not read tarball %s: %v", tarball, err)
+		}
 		buffer := bytes.NewBuffer(data)
-		extract.Gz(context.TODO(), buffer, targetDir, nil)
+		err = extract.Gz(context.TODO(), buffer, targetDir, nil)
+		if err != nil {
+			log.Fatalf("Could not extract tarball %s: %v", tarball, err)
+		}
 	}
-	//TODO: handle errors
 }
 
+// ExtractTools function extracts openshift-install and oc binaries from the image - this uses locally available oc binary
+// which means it has to be run first and any consecutive commands should use the extracted oc binary.
 func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
-	log.Printf("Extracting tools from image: %v", imageUrl)
-	// TODO: maybe this can be changed to just extract openshift-install and oc to make it faster?
-	// Something like: $ oc adm -a ${LOCAL_SECRET_JSON} release extract --command=openshift-install "${LOCAL_REGISTRY}/${LOCAL_REPOSITORY}:${OCP_RELEASE}-${ARCHITECTURE}"
-
-	secret, err := filepath.Abs(pullSecretFile)
+	secret, err := filepath.Abs(os.ExpandEnv(pullSecretFile))
 	if err != nil {
 		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
 	}
-	baseCmd := "oc" //This has to be oc binary already present system wide, after this the extracted "./oc" should be used.
-	args := []string{"adm", "-a", secret, "release", "extract", "--tools", imageUrl}
-	log.Printf("Extracting tools from image: %v", imageUrl)
+	baseCmd := "oc" //This has to be oc binary already present on the system because we don't have it extracted yet.
+
+	//args := []string{"adm", "-a", secret, "release", "extract", "--tools", imageUrl}
+
+	args := []string{"adm", "-a", secret, "release", "extract", "--command=openshift-install", imageUrl}
+	log.Printf("Extracting openshift-install binary from image: %v", imageUrl)
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	args = []string{"adm", "-a", secret, "release", "extract", "--command=oc", imageUrl}
+	log.Printf("Extracting oc binary from image: %v", imageUrl)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }
 

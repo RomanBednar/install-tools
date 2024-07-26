@@ -11,16 +11,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-const (
-	defaultConfigFilename = "conf"
-
-	// The environment variable prefix of all environment variables bound to command line flags.
-	// For example, if the flag is --cloud, the environment variable will be INST_CLOUD
-	envPrefix = "INST"
-
-	secretsDir = "./secrets"
-)
-
 var (
 	configPaths = []string{
 		// First path here has the highest priority.
@@ -31,7 +21,6 @@ var (
 
 func init() {
 	cobra.OnInitialize(initializeConfig)
-
 	rootCmd.PersistentFlags().StringP("action", "a", "create", "Action to perform. Valid values are: create, destroy.")
 	viper.BindPFlag("action", rootCmd.PersistentFlags().Lookup("action"))
 
@@ -54,16 +43,31 @@ func init() {
 	rootCmd.PersistentFlags().StringP("cloud-region", "r", "us-east-1", "Cloud region to use for installation.")
 	viper.BindPFlag("cloudregion", rootCmd.PersistentFlags().Lookup("cloud-region"))
 
+	rootCmd.PersistentFlags().StringP("pull-secret", "p", "", "Path to the pull secret file.")
+	viper.BindPFlag("pullsecret", rootCmd.PersistentFlags().Lookup("pull-secret"))
+
 	rootCmd.PersistentFlags().BoolP("dry-run", "d", false, "Dry run - only generate install-config.yaml and manifests, do not install cluster.")
 	viper.BindPFlag("dryrun", rootCmd.PersistentFlags().Lookup("dry-run"))
+
+	rootCmd.PersistentFlags().StringP("config-path", "f", "", "Path to the configuration file (can be used in place of any flags).")
+	viper.BindPFlag("configpath", rootCmd.PersistentFlags().Lookup("config-path"))
+
 }
 
 func initializeConfig() {
+
+	configFilePath := viper.GetString("configpath")
+	if configFilePath != "" {
+		fmt.Printf("Using custom config path: %s\n", configFilePath)
+		// Prepend the custom config path, so it has the highest priority in viper.
+		configPaths = append([]string{configFilePath}, configPaths...)
+	}
+
 	for _, path := range configPaths {
 		viper.AddConfigPath(path)
 	}
 
-	viper.SetConfigName(defaultConfigFilename)
+	viper.SetConfigName(utils.DefaultConfigFilename)
 	if err := viper.ReadInConfig(); err != nil {
 		// It's okay if there is no a config file
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
@@ -72,18 +76,9 @@ func initializeConfig() {
 			log.Fatal(err)
 		}
 	}
-	viper.SetEnvPrefix(envPrefix)
+	viper.SetEnvPrefix(utils.EnvPrefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	viper.AutomaticEnv()
-}
-
-func validateFlags() {
-	if viper.GetString("image") == "" {
-		log.Fatalf("Image must be specified.")
-	}
-	if viper.GetString("cloud") == "" {
-		log.Fatalf("Cloud must be specified.")
-	}
 }
 
 var rootCmd = &cobra.Command{
@@ -97,34 +92,20 @@ var rootCmd = &cobra.Command{
 			os.Exit(1)
 		}
 		fmt.Printf("Running with configuration: %#v\n", c)
-		Run(&c)
+		validateFlags()
+		utils.Run(&c)
 	},
 }
 
-func Run(conf *utils.Config) {
-	//os.Exit(0)
-	validateFlags()
-
-	utils.MustDockerLogin(secretsDir, conf.Image)
-
-	parser := utils.NewTemplateParser(conf)
-	parser.ParseTemplate()
-
-	utils.NewInstallDriver(conf).Run()
-
-	if conf.DryRun {
-		log.Printf("Done.")
-		return
+func validateFlags() {
+	if viper.GetString("image") == "" {
+		log.Fatalf("Image must be specified.")
 	}
-
-	action := viper.GetString("action")
-	switch action {
-	case "create":
-		utils.InstallCluster(conf.OutputDir, true)
-	case "destroy":
-		utils.DestroyCluster(conf.OutputDir, true)
-	default:
-		log.Fatalf("Unkown action: %v. Exiting.", action)
+	if viper.GetString("cloud") == "" {
+		log.Fatalf("Cloud must be specified.")
+	}
+	if viper.GetBool("dryrun") && viper.GetString("action") != "create" {
+		log.Fatalf("Dry run can only be used with create action.")
 	}
 }
 

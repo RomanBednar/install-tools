@@ -3,6 +3,8 @@ package utils
 import (
 	"log"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,11 +37,12 @@ func getDomainFromURL(imageURL string) string {
 //	return rc == 0
 //}
 
-func MustDockerLogin(pullSecretDir, imageUrl string) bool {
+func MustContainerEngineLogin(pullSecretFile, imageUrl, engine string) bool {
+	pullSecretDir := filepath.Dir(os.ExpandEnv(pullSecretFile))
 	registryDomain := getDomainFromURL(imageUrl)
-	baseCmd := "docker"
+	baseCmd := engine
 	args := []string{"--config", pullSecretDir, "login", registryDomain}
-	log.Printf("Verifying we can login with docker to: %v", registryDomain)
+	log.Printf("Verifying we can login with %v to: %v", engine, registryDomain)
 	_, _, rc := runCommand(baseCmd, "", args...)
 
 	return rc == 0
