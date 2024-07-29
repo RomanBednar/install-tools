@@ -52,6 +52,10 @@ func init() {
 	rootCmd.PersistentFlags().StringP("config-path", "f", "", "Path to the configuration file (can be used in place of any flags).")
 	viper.BindPFlag("configpath", rootCmd.PersistentFlags().Lookup("config-path"))
 
+	// dump configuration command
+	rootCmd.PersistentFlags().BoolP("dump-config", "D", false, "Dump the configuration to stdout and exit.")
+	viper.BindPFlag("dumpconfig", rootCmd.PersistentFlags().Lookup("dump-config"))
+
 }
 
 func initializeConfig() {
@@ -91,8 +95,13 @@ var rootCmd = &cobra.Command{
 			fmt.Printf("Error unmarshalling config file: %s", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Running with configuration: %#v\n", c)
+
 		validateFlags()
+		if viper.GetBool("dumpconfig") {
+			fmt.Printf("Running with configuration: %#v\n", c)
+			os.Exit(0)
+		}
+
 		utils.Run(&c)
 	},
 }

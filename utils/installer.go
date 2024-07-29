@@ -25,6 +25,9 @@ func (d *InstallDriver) Run() {
 	case "aws-odf": //TODO: this should be a parameter instead
 		fmt.Println("Driver is preparing AWS ODF installation.")
 		d.awsPreparation()
+	case "gcp-wif":
+		fmt.Println("Driver is preparing GCP WIF installation.")
+		d.gcpWIFPreparation()
 	case "vmware":
 		fmt.Println("Driver is preparing vmWare installation.")
 		d.vmwarePreparation()
@@ -46,14 +49,24 @@ func (d *InstallDriver) awsPreparation() {
 	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }
 
+// For installing EFS Operator via Operator Hub refer to documentation provided there.
+// Users have to create CredentialsRequest manually and let ccoctl create iam role - although similar this CredentialsRequest has nothing to do with the one created by the operator later.
+// For --identity-provider-arn in ccoctl use existing identity provider that was used to create other roles by the installer.
 func (d *InstallDriver) awsSTSPreparation() {
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	CreateInstallManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, "aws")
+	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	ExecuteCcoctl(d.conf.OutputDir, "aws", "us-east-1", d.conf.DryRun)
+}
+
+func (d *InstallDriver) gcpWIFPreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
-
-	// Extract ccoctl tool
+	CreateInstallManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, "gcp")
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	CreateCredentialRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "aws")
+
+	//NOTE: for some reason the region for ccoctl binary does not match region in install-config.yaml
+	ExecuteCcoctl(d.conf.OutputDir, "gcp", "us", d.conf.DryRun)
 }
 
 func (d *InstallDriver) vmwarePreparation() {
@@ -72,7 +85,7 @@ func (d *InstallDriver) alibabaPreparation() {
 
 	// Extract ccoctl tool
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	CreateCredentialRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "alibabacloud")
+	alibabaCreateCredRequestManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, d.conf.CloudRegion, "alibabacloud")
 }
 
 func (d *InstallDriver) azurePreparation() {
@@ -82,7 +95,6 @@ func (d *InstallDriver) azurePreparation() {
 }
 
 func Run(conf *Config) {
-	//os.Exit(0)
 
 	MustContainerEngineLogin(conf.PullSecretFile, conf.Image, conf.Engine)
 

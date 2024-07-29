@@ -13,7 +13,11 @@ import (
 	"syscall"
 )
 
-const defaultFailedCode = 1
+const (
+	defaultFailedCode     = 1
+	defaultGcpProject     = "openshift-gce-devel"
+	defaultCredRequestDir = "./credRequests"
+)
 
 func runCommand(name string, workDir string, args ...string) (stdout string, stderr string, exitCode int) {
 	log.Println("run command:", name, args)
@@ -56,6 +60,21 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 	}
 
 	return
+}
+
+func mustBeSupportedCloud(cloud string) {
+	// check if cloud provided is one of supported values
+	supportedClouds := []string{"gcp", "aws"}
+	var supported bool
+	for _, c := range supportedClouds {
+		if c == cloud {
+			supported = true
+			break
+		}
+	}
+	if !supported {
+		panic(fmt.Sprintf("Unsupported cloud selected: %v\n", cloud))
+	}
 }
 
 func getCcoImageDigest(pullSecretFile, outputDir, imageUrl string) string {
@@ -122,7 +141,7 @@ func ExtractTools(pullSecretFile, outputDir, imageUrl string) {
 }
 
 func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
-	log.Printf("Extracting ccoctl from image: %v", imageUrl)
+	log.Printf("Extracting CCO image from release image: %v", imageUrl)
 	// get absolute path of pullSecretFile
 	file, err := filepath.Abs(pullSecretFile)
 	if err != nil {
@@ -132,7 +151,7 @@ func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
 	ccoImage := getCcoImageDigest(file, outputDir, imageUrl)
 	baseCmd := "./oc"
 	args := []string{"image", "-a", file, "extract", "--file", "/usr/bin/ccoctl", "--confirm", ccoImage}
-	log.Printf("Extracting ccoctl from CCO image digest: %v", ccoImage)
+	log.Printf("Extracting ccoctl binary from CCO image digest: %v", ccoImage)
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
 	baseCmd = "chmod"
@@ -140,7 +159,95 @@ func ExtractCcoctl(pullSecretFile, outputDir, imageUrl string) {
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 }
 
-func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, region, cloud string) {
+func CreateInstallManifests(pullSecretFile, outputDir, imageUrl, cloud string) {
+	mustBeSupportedCloud(cloud)
+
+	// get absolute path of pullSecretFile
+	file, err := filepath.Abs(pullSecretFile)
+	if err != nil {
+		panic(fmt.Sprintf("Could not resolve relative path to pull secret: %v", err))
+	}
+
+	log.Printf("Extracting manifests from image: %v", imageUrl)
+	baseCmd := "./openshift-install"
+	args := []string{"create", "manifests", "--log-level", "debug"}
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	baseCmd = "mkdir"
+	args = []string{defaultCredRequestDir}
+	log.Println("Creating creds directory.")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	baseCmd = "./oc"
+	args = []string{"adm", "-a", file, "release", "extract", "--credentials-requests", "--cloud", cloud, "--to", defaultCredRequestDir, imageUrl}
+	log.Println("Extracting credential request")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+	//baseCmd = "cp"
+	//// This assumes that `openshift-install create manifests` command defaults output dir to ./manifests.
+	//args = []string{"-a", "./manifests/tls", "."}
+	//log.Println("Copying bound service account signing key to manifests dir.")
+	//_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+}
+
+// ExecuteCcoctl must run after CreateInstallManifests and ExtractCcoctl
+func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
+	mustBeSupportedCloud(cloud)
+
+	baseCmd := "awk"
+	args := []string{"/infrastructureName:/{print $2}", "manifests/cluster-infrastructure-02-config.yml"}
+	log.Println("Getting Infrastructure name")
+	out, _, _ := runCommand(baseCmd, outputDir, args...)
+	infrastructureName := strings.TrimSuffix(out, "\n")
+	log.Printf("Infrastructure name found: %v", infrastructureName)
+
+	baseCmd = "./ccoctl"
+	// Omitting --output-dir flag to let ccoctl save manifests to ./manifests (default) - from there we don't have to move it.
+	args = []string{cloud, "create-all", "--name", infrastructureName, "--region", region, "--credentials-requests-dir", defaultCredRequestDir}
+	switch cloud {
+	case "gcp":
+		args = append(args, []string{"--project", defaultGcpProject}...)
+	case "aws":
+		args = append(args, "--create-private-s3-bucket")
+	}
+
+	if dryRun {
+		log.Println("Dry run requested, skipping ccoctl command.")
+		log.Printf("To execute ccoctl command manually run: %v %v", baseCmd, strings.Join(args, " "))
+		return
+	}
+
+	log.Printf("Creating cloud credential manifests.")
+	_, _, _ = runCommand(baseCmd, outputDir, args...)
+
+}
+
+func InstallCluster(installDir string, verbose bool) {
+	baseCmd := "./openshift-install"
+	args := []string{"create", "cluster"}
+	if verbose {
+		args = append(args, "--log-level", "debug")
+	}
+	log.Printf("Starting cluster installation.")
+	_, _, _ = runCommand(baseCmd, installDir, args...)
+	//TODO: this hides output from the progress - fix it
+}
+
+func DestroyCluster(installDir string, verbose bool) {
+	baseCmd := "./openshift-install"
+	args := []string{"destroy", "cluster"}
+	if verbose {
+		args = append(args, "--log-level", "debug")
+	}
+	log.Printf("Destroying cluster.")
+	_, _, _ = runCommand(baseCmd, installDir, args...)
+}
+
+/////////////
+
+// Deprecated
+func alibabaCreateCredRequestManifests(pullSecretFile, outputDir, imageUrl, region, cloud string) {
 	// get absolute path of pullSecretFile
 	file, err := filepath.Abs(pullSecretFile)
 	if err != nil {
@@ -183,25 +290,4 @@ func CreateCredentialRequestManifests(pullSecretFile, outputDir, imageUrl, regio
 		args := []string{"-v", "-r", f, "./manifests"}
 		_, _, _ = runCommand(baseCmd, outputDir, args...)
 	}
-}
-
-func InstallCluster(installDir string, verbose bool) {
-	baseCmd := "./openshift-install"
-	args := []string{"create", "cluster"}
-	if verbose {
-		args = append(args, "--log-level", "debug")
-	}
-	log.Printf("Starting cluster installation.")
-	_, _, _ = runCommand(baseCmd, installDir, args...)
-	//TODO: this hides output from the progress - fix it
-}
-
-func DestroyCluster(installDir string, verbose bool) {
-	baseCmd := "./openshift-install"
-	args := []string{"destroy", "cluster"}
-	if verbose {
-		args = append(args, "--log-level", "debug")
-	}
-	log.Printf("Destroying cluster.")
-	_, _, _ = runCommand(baseCmd, installDir, args...)
 }

@@ -58,6 +58,7 @@ var cloudTemplatesMap = map[string]string{
 	"vmware":  "vmware_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
 	"azure":   "azure_basic.tmpl",
+	"gcp-wif": "gcp_wif.tmpl",
 }
 
 func NewTemplateParser(data *Config) TemplateParser {
