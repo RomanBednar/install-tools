@@ -81,3 +81,4 @@ go run main.go --action create  --cloud aws --image registry.ci.openshift.org/oc
 * create config file interactively - ask for values and save them to config/config.env or config/config.toml
 * add scraper image payloads so users do not have to copy/paste it manually and just specify or search versions in CLI: https://amd64.ocp.releases.ci.openshift.org/
 * sometimes docker/podman adds `"quay.io":{}` into `config.json` which will break openshift-install if this lands in `pullSecret`
+* each cloud has different regions, need a better way to handle this than hardcoding to templates (also ccoctl has region flag too)

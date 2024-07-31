@@ -1,7 +1,7 @@
 include ./config/conf.env
 CURRENT_DIR = $(shell pwd)
 
-ENTER_CMD = ${engine} run --rm -it --workdir /code --cap-add SYS_ADMIN --privileged -v ${CURRENT_DIR}:/code -v ${homeDir}:/root -v /var/run/docker.sock:/var/run/docker.sock localhost/${imageTag} /bin/bash
+ENTER_CMD = ${engine} run --platform linux/x86_64 --rm -it --workdir /code --cap-add SYS_ADMIN --privileged -v ${CURRENT_DIR}:/code -v ${homeDir}:/root -v /var/run/docker.sock:/var/run/docker.sock localhost/${imageTag} /bin/bash
 
 #get-secrets:
 #	mkdir -p ./secrets || .

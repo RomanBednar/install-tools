@@ -1,9 +1,10 @@
-FROM docker:latest
+FROM --platform=linux/x86_64 docker:latest
 
 ARG GOLANG_VERSION=1.22.0
 
-#we need the go version installed from apk to bootstrap the custom version built from source
-RUN apk update && apk upgrade --available && apk add go gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs
+# we need the go version installed from apk to bootstrap the custom version built from source
+# libc6-compat is needed on alipine for ccoctl binary to load dynamic libraries correctly
+RUN apk update && apk upgrade --available && apk add go gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat
 
 #we need to add the vcenter certificates to the system
 COPY artifacts/linux-ca-vcenter/* /usr/local/share/ca-certificates/
