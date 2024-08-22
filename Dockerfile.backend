@@ -1,38 +1,39 @@
-FROM --platform=linux/x86_64 golang:1.22-alpine AS build
+ARG GOLANG_VERSION=1.22.6
+FROM --platform=linux/x86_64 golang:$GOLANG_VERSION AS build
 
 COPY . /app
 WORKDIR /app/api
 RUN go build -o backend
 
-FROM docker:latest
+FROM --platform=linux/x86_64 docker:latest
 
-ARG GOLANG_VERSION=1.22.0
+ARG GOLANG_VERSION
+ENV GOLANG_VERSION=${GOLANG_VERSION}
+ENV OC_CLI_URL=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest/openshift-client-linux-arm64.tar.gz
+ENV GOLANG_TARFILE=go$GOLANG_VERSION.linux-amd64.tar.gz
+ENV GOLANG_TARFILE_URL=https://go.dev/dl/$GOLANG_TARFILE
 
+# add the vcenter certificates to the system
+# to copy this manually into container for testing:  ls ./artifacts/linux-ca-vcenter/* | xargs -I {} podman cp {} <container_id>:/usr/local/share/ca-certificates/
 COPY artifacts/linux-ca-vcenter/* /usr/local/share/ca-certificates/
 
-# we need the go version installed from apk to bootstrap the custom version built from source
 # libc6-compat is needed on alipine for ccoctl binary to load dynamic libraries correctly
-RUN apk update && apk upgrade --available && apk add go gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat && update-ca-certificates
+RUN apk update && \
+    apk upgrade --available && \
+    apk add gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat && \
+    update-ca-certificates && \
+    wget ${OC_CLI_URL} -O /tmp/oc.tar.gz && \
+    tar xvzf /tmp/oc.tar.gz --directory /bin
 
-RUN wget https://dl.google.com/go/go$GOLANG_VERSION.src.tar.gz && tar -C /usr/local -xzf go$GOLANG_VERSION.src.tar.gz
-
-RUN cd /usr/local/go/src && ./make.bash
+RUN wget $GOLANG_TARFILE_URL && \
+    tar -C /usr/local -xzf $GOLANG_TARFILE && \
+    export PATH=$PATH:/usr/local/go/bin && \
+    rm $GOLANG_TARFILE && \
+    #apk del go && \
+    go version
 
 ENV PATH=$PATH:/usr/local/go/bin
 
-RUN rm go$GOLANG_VERSION.src.tar.gz
-
-#we delete the apk installed version to avoid conflict
-RUN apk del go
-
-RUN go version
-
-###
-ENV OC_CLI_URL=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/latest/openshift-client-linux-arm64.tar.gz
-
-RUN wget ${OC_CLI_URL} -O /tmp/oc.tar.gz
-RUN tar xvzf /tmp/oc.tar.gz --directory /tmp
-RUN cp /tmp/oc /bin
 #########################
 COPY --from=build /app /app
 WORKDIR /app/api

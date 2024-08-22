@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/RomanBednar/install-tools/utils"
 	"log"
@@ -9,14 +10,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-)
-
-var (
-	configPaths = []string{
-		// First path here has the highest priority.
-		"$HOME/.install-tools",
-		"./config",
-	}
 )
 
 func init() {
@@ -60,24 +53,24 @@ func init() {
 
 func initializeConfig() {
 
+	configPaths := utils.ConfigPaths
+	// If custom config path is used prepend it, so it has the highest priority in viper.
 	configFilePath := viper.GetString("configpath")
 	if configFilePath != "" {
 		fmt.Printf("Using custom config path: %s\n", configFilePath)
-		// Prepend the custom config path, so it has the highest priority in viper.
-		configPaths = append([]string{configFilePath}, configPaths...)
+		configPaths = append([]string{configFilePath}, utils.ConfigPaths...)
 	}
-
 	for _, path := range configPaths {
 		viper.AddConfigPath(path)
+		fmt.Printf("Added config path to viper: %s\n", path)
 	}
 
 	viper.SetConfigName(utils.DefaultConfigFilename)
 	if err := viper.ReadInConfig(); err != nil {
-		// It's okay if there is no a config file
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			fmt.Printf("Config file not found: %v\n", err)
-		} else {
-			log.Fatal(err)
+		// It's okay if there is no config file
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
+			fmt.Printf("WARNING: Config file not found: %v\n", err)
 		}
 	}
 	viper.SetEnvPrefix(utils.EnvPrefix)

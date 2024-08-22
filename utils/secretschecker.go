@@ -25,19 +25,7 @@ func getDomainFromURL(imageURL string) string {
 	return domain
 }
 
-// TODO: add podman support
-//func CanPodmanLogin(pullSecretFile, imageUrl string) bool {
-//	registryDomain := getDomainFromURL(imageUrl)
-//	//configPath := filepath.Dir(pullSecretFile)
-//	baseCmd := "podman"
-//	args := []string{"login", "--authfile", pullSecretFile, registryDomain}
-//	log.Printf("Verifying we can 'podman login' to: %v", registryDomain)
-//	_, _, rc := runCommand(baseCmd, "", args...)
-//
-//	return rc == 0
-//}
-
-func MustContainerEngineLogin(pullSecretFile, imageUrl, engine string) bool {
+func MustContainerEngineLogin(pullSecretFile, imageUrl, engine string) {
 	pullSecretDir := filepath.Dir(os.ExpandEnv(pullSecretFile))
 	registryDomain := getDomainFromURL(imageUrl)
 	baseCmd := engine
@@ -45,5 +33,7 @@ func MustContainerEngineLogin(pullSecretFile, imageUrl, engine string) bool {
 	log.Printf("Verifying we can login with %v to: %v", engine, registryDomain)
 	_, _, rc := runCommand(baseCmd, "", args...)
 
-	return rc == 0
+	if rc != 0 {
+		panic("Could not login to registry: " + registryDomain)
+	}
 }

@@ -28,20 +28,24 @@ func userConfirm() bool {
 
 // All configuration is loaded into this structure and then used to parse templates.
 type Config struct {
-	Action           string `ini:"action"`
-	Cloud            string `ini:"cloud"`
-	ClusterName      string `ini:"clusterName"`
-	UserName         string `ini:"userName"`
-	OutputDir        string `ini:"outputDir"`
-	CloudRegion      string `ini:"cloudRegion"`
-	Image            string `ini:"image"`
-	VmwarePassword   string `ini:"vmwarePassword"`
-	SshPublicKeyFile string `ini:"sshPublicKeyFile"`
-	SshPublicKey     string `ini:"sshPublicKey"`
-	PullSecretFile   string `ini:"pullSecretFile"`
-	PullSecret       string `ini:"pullSecret"`
-	Engine           string `ini:"engine"`
-	DryRun           bool   `ini:"dryRun"`
+	Action                  string `ini:"action"`
+	Cloud                   string `ini:"cloud"`
+	ClusterName             string `ini:"clusterName"`
+	UserName                string `ini:"userName"`
+	OutputDir               string `ini:"outputDir"`
+	CloudRegion             string `ini:"cloudRegion"`
+	Image                   string `ini:"image"`
+	VSpherePassword         string `ini:"vSpherePassword"`
+	VSphereBaseDomain       string `ini:"vSphereBaseDomain"`
+	VSphereVCenterSubdomain string `ini:"vSphereVCenterSubdomain"`
+	VSphereApiVIP           string `ini:"vSphereApiVIP"`
+	VSphereIngressVIP       string `ini:"vSphereIngressVIP"`
+	SshPublicKeyFile        string `ini:"sshPublicKeyFile"`
+	SshPublicKey            string `ini:"sshPublicKey"`
+	PullSecretFile          string `ini:"pullSecretFile"`
+	PullSecret              string `ini:"pullSecret"`
+	Engine                  string `ini:"engine"`
+	DryRun                  bool   `ini:"dryRun"`
 }
 
 type TemplateParser struct {
@@ -55,10 +59,11 @@ var cloudTemplatesMap = map[string]string{
 	"aws":     "aws_basic.tmpl",
 	"aws-sts": "aws_sts.tmpl",
 	"aws-odf": "aws_odf.tmpl",
-	"vmware":  "vmware_basic.tmpl",
+	"vsphere": "vsphere_basic.tmpl",
 	"alibaba": "alibaba_basic.tmpl",
 	"azure":   "azure_basic.tmpl",
 	"gcp-wif": "gcp_wif.tmpl",
+	"gcp":     "gcp_basic.tmpl",
 }
 
 func NewTemplateParser(data *Config) TemplateParser {
@@ -159,13 +164,13 @@ func (t *TemplateParser) ParseTemplate() {
 	//	}
 	//}
 	//
-	//if t.data.Cloud == "vmware" {
+	//if t.data.Cloud == "vsphere" {
 	//	log.Printf("Are you connected to TwinGate VPN?\n", output)
 	//	if !userConfirm() {
 	//		log.Fatalf("Aborting.")
 	//	}
 	//	password := passwordPrompt("Please enter password for vcenter (vcenter.devqe.ibmc.devcluster.openshift.com)")
-	//	t.data.VmwarePassword = password
+	//	t.data.VSpherePassword = password
 	//}
 
 	//TODO: this probably should not be here - move to main?

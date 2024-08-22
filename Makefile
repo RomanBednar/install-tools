@@ -1,18 +1,13 @@
 include ./config/conf.env
 CURRENT_DIR = $(shell pwd)
 
-ENTER_CMD = ${engine} run --platform linux/x86_64 --rm -it --workdir /code --cap-add SYS_ADMIN --privileged -v ${CURRENT_DIR}:/code -v ${homeDir}:/root -v /var/run/docker.sock:/var/run/docker.sock localhost/${imageTag} /bin/bash
-
-#get-secrets:
-#	mkdir -p ./secrets || .
-#	cp ${sshPublicKeyFile} ./secrets
-#	jq 'del(.credsStore, .currentContext)' ${pullSecretFile} | tr -d '[:space:]' > ./secrets/config.json
+ENTER_CMD = ${engine} run --platform linux/x86_64 --rm -it --workdir /code --cap-add SYS_ADMIN --privileged -v ${CURRENT_DIR}:/code -v ${homeDir}:/root -v /var/run/docker.sock:/var/run/docker.sock ${imageRepo}/${imageName}:${imageTag} /bin/bash
 
 build:
-	GO111MODULE=on go build -o "$(abspath ./bin/)/install-tool"
+	GO111MODULE=on go build -o "$(abspath ./bin/)/ocp-install-tool"
 
 image:
-	${engine} build -f Dockerfile.devel -t localhost/${imageTag} .
+	${engine} build -f Dockerfile.backend -t ${imageRepo}/${imageName}:${imageTag} .
 
 enter:
 	${ENTER_CMD} || echo "You need to build the app image first with 'make image'"

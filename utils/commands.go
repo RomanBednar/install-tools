@@ -223,6 +223,22 @@ func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
 
 }
 
+func checkVCenterReachable() {
+	url := "https://vcenter.devqe.ibmc.devcluster.openshift.com/"
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	resp, err := client.Get(url)
+	if err != nil {
+		fmt.Printf("Warning: URL %s is not reachable. Error: %v\n", url, err)
+		panic("VCenter is not reachable. Please check your VPN connection and try again.")
+	}
+	defer resp.Body.Close()
+
+	fmt.Printf("URL %s is reachable\n", url)
+}
+
 func InstallCluster(installDir string, verbose bool) {
 	baseCmd := "./openshift-install"
 	args := []string{"create", "cluster"}

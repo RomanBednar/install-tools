@@ -28,9 +28,9 @@ func (d *InstallDriver) Run() {
 	case "gcp-wif":
 		fmt.Println("Driver is preparing GCP WIF installation.")
 		d.gcpWIFPreparation()
-	case "vmware":
-		fmt.Println("Driver is preparing vmWare installation.")
-		d.vmwarePreparation()
+	case "vsphere":
+		fmt.Println("Driver is preparing vSphere installation.")
+		d.vspherePreparation()
 	case "alibaba":
 		fmt.Println("Driver is preparing Alibaba installation.")
 		d.alibabaPreparation()
@@ -69,12 +69,9 @@ func (d *InstallDriver) gcpWIFPreparation() {
 	ExecuteCcoctl(d.conf.OutputDir, "gcp", "us", d.conf.DryRun)
 }
 
-func (d *InstallDriver) vmwarePreparation() {
-	// Extract and unarchive tools from image
+func (d *InstallDriver) vspherePreparation() {
+	checkVCenterReachable()
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	//Unarchive(d.conf.OutputDir, d.conf.OutputDir)
-	// Start Bastion tunnel or scp install dir to bastion
-	// TODO
 }
 
 // Deprecated
