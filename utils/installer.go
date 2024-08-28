@@ -28,6 +28,9 @@ func (d *InstallDriver) Run() {
 	case "gcp-wif":
 		fmt.Println("Driver is preparing GCP WIF installation.")
 		d.gcpWIFPreparation()
+	case "gcp":
+		fmt.Println("Driver is preparing GCP installation.")
+		d.gcpPreparation()
 	case "vsphere":
 		fmt.Println("Driver is preparing vSphere installation.")
 		d.vspherePreparation()
@@ -67,6 +70,11 @@ func (d *InstallDriver) gcpWIFPreparation() {
 
 	//NOTE: for some reason the region for ccoctl binary does not match region in install-config.yaml
 	ExecuteCcoctl(d.conf.OutputDir, "gcp", "us", d.conf.DryRun)
+}
+
+// Installing cluster on GCP requires a service account which is pruned every ~3 days.
+func (d *InstallDriver) gcpPreparation() {
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 }
 
 func (d *InstallDriver) vspherePreparation() {
