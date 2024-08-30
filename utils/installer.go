@@ -47,9 +47,7 @@ func (d *InstallDriver) Run() {
 }
 
 func (d *InstallDriver) awsPreparation() {
-	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
 }
 
 // For installing EFS Operator via Operator Hub refer to documentation provided there.
@@ -62,8 +60,9 @@ func (d *InstallDriver) awsSTSPreparation() {
 	ExecuteCcoctl(d.conf.OutputDir, "aws", "us-east-1", d.conf.DryRun)
 }
 
+// Installing cluster on GCP requires a service account which is pruned every ~3 days.
 func (d *InstallDriver) gcpWIFPreparation() {
-	// Extract and unarchive tools from image
+	CreateGCPServiceAccount(d.conf.UserName, d.conf.OutputDir)
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	CreateInstallManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, "gcp")
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
@@ -74,6 +73,7 @@ func (d *InstallDriver) gcpWIFPreparation() {
 
 // Installing cluster on GCP requires a service account which is pruned every ~3 days.
 func (d *InstallDriver) gcpPreparation() {
+	CreateGCPServiceAccount(d.conf.UserName, d.conf.OutputDir)
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 }
 

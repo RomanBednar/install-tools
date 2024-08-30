@@ -3,14 +3,17 @@ package utils
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/codeclysm/extract"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -28,8 +31,8 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 	cmd.Stderr = &errbuf
 
 	err := cmd.Run()
-	stdout = outbuf.String()
-	stderr = errbuf.String()
+	stdout = strings.TrimSpace(outbuf.String())
+	stderr = strings.TrimSpace(errbuf.String())
 
 	if err != nil {
 		// try to get the exit code
@@ -56,7 +59,7 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 
 	if exitCode != 0 {
 		//TODO: maybe we should not panic here, but return error instead
-		panic(fmt.Errorf("Command failed stderr=%v rc=%v", err, exitCode))
+		panic(fmt.Errorf("command failed stderr=%v rc=%v", err, exitCode))
 	}
 
 	return
@@ -221,6 +224,101 @@ func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
 	log.Printf("Creating cloud credential manifests.")
 	_, _, _ = runCommand(baseCmd, outputDir, args...)
 
+}
+
+func CreateGCPServiceAccount(userName, outputDir string) {
+	mustGcloudAuth()
+	serviceAccountName := fmt.Sprintf("%s-development", userName)
+	outputCredentialsFile := filepath.Join(outputDir, "gcp-service-account.json")
+	baseCmd := "gcloud"
+	var serviceAccountEmail string
+
+	// First check if the account already exists
+	args := []string{"iam", "service-accounts", "list", "--filter", fmt.Sprintf("displayName:%s", serviceAccountName), "--format", "value(displayName)"}
+	output, _, _ := runCommand(baseCmd, "", args...)
+	log.Printf("service account found: %#v needed: %#v", output, serviceAccountName)
+	if output != serviceAccountName {
+		// Create the service account
+		log.Printf("Creating service account %s", serviceAccountName)
+		args = []string{"iam", "service-accounts", "create", serviceAccountName, "--display-name", serviceAccountName}
+		runCommand(baseCmd, "", args...)
+
+		time.Sleep(5 * time.Second) //TODO: fix this, see explanation below
+		// Get service account details
+		args = []string{"iam", "service-accounts", "list", "--format", "json"}
+		stdout, _, _ := runCommand(baseCmd, "", args...)
+
+		var accounts []map[string]interface{}
+		json.Unmarshal([]byte(stdout), &accounts)
+
+		var projectID string
+		for _, account := range accounts {
+			if strings.Contains(account["name"].(string), serviceAccountName+"@") {
+				serviceAccountEmail = account["email"].(string)
+				projectID = account["projectId"].(string)
+				break
+			}
+		}
+
+		// Grant permissions
+		roles := []string{
+			"roles/compute.admin",
+			"roles/iam.securityAdmin",
+			"roles/iam.serviceAccountAdmin",
+			"roles/iam.serviceAccountKeyAdmin",
+			"roles/iam.serviceAccountUser",
+			"roles/storage.admin",
+			"roles/dns.admin",
+			"roles/compute.loadBalancerAdmin",
+			"roles/iam.roleViewer",
+			"roles/iam.workloadIdentityPoolAdmin",
+		}
+
+		//TODO: sometimes gcloud fails here with "There were concurrent policy changes. Please retry the whole read-modify-write with exponential backoff."
+		//TODO: IAM commands should have a retry and backoff - gcloud commands race with each other a lot
+		for _, role := range roles {
+			args = []string{"projects", "add-iam-policy-binding", projectID, "--member", "serviceAccount:" + serviceAccountEmail, "--role", role, "--condition", "None"}
+			runCommand(baseCmd, "", args...)
+			time.Sleep(1 * time.Second) //TODO: fix this
+		}
+
+		// Create service account key
+		args = []string{"iam", "service-accounts", "keys", "create", outputCredentialsFile, "--iam-account", serviceAccountEmail}
+		runCommand(baseCmd, "", args...)
+
+	} else {
+		// If storage account exists we would have to inspect the keys, save them as a file, make sure they're valid and what not - too complicated, it's easier to just recreate.
+		args = []string{"iam", "service-accounts", "list", "--filter", fmt.Sprintf("displayName:%s", serviceAccountName), "--format", "value(email)"}
+		serviceAccountEmail, _, _ = runCommand(baseCmd, "", args...)
+		log.Printf("Service account %v already exists, please remove it and start again.", serviceAccountName)
+		log.Printf("HINT: To remove service account run: gcloud iam service-accounts delete %s", serviceAccountEmail)
+		panic("Installation aborted.")
+	}
+
+	if err := os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", outputCredentialsFile); err != nil {
+		panic(fmt.Sprintf("could not set GOOGLE_APPLICATION_CREDENTIALS env var: %v", err))
+	}
+	log.Printf("GOOGLE_APPLICATION_CREDENTIALS environment variable has been set to %s", outputCredentialsFile)
+}
+
+func mustGcloudAuth() {
+	baseCmd := "gcloud"
+	args := []string{"auth", "list", "--format", "json"}
+	stdout, _, _ := runCommand(baseCmd, "", args...)
+
+	var authList []map[string]string
+	err := json.Unmarshal([]byte(stdout), &authList)
+	if err != nil {
+		panic(fmt.Sprintf("Error parsing gcloud auth list output: %v", err))
+	}
+
+	for _, auth := range authList {
+		if auth["status"] == "ACTIVE" {
+			return
+		}
+	}
+
+	panic("Not logged in to gcloud. Please run 'gcloud auth login' first.")
 }
 
 func checkVCenterReachable() {

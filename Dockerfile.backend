@@ -18,18 +18,25 @@ ENV GOLANG_TARFILE_URL=https://go.dev/dl/$GOLANG_TARFILE
 COPY artifacts/linux-ca-vcenter/* /usr/local/share/ca-certificates/
 
 # libc6-compat is needed on alipine for ccoctl binary to load dynamic libraries correctly
+# bash is needed for gcloud installation and runtime to work
 RUN apk update && \
     apk upgrade --available && \
-    apk add gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat && \
+    apk add curl bash python3 gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat && \
     update-ca-certificates && \
     wget ${OC_CLI_URL} -O /tmp/oc.tar.gz && \
     tar xvzf /tmp/oc.tar.gz --directory /bin
 
+# download and install gcloud cli
+RUN curl https://sdk.cloud.google.com > /tmp/install.sh && \
+    bash /tmp/install.sh --disable-prompts --install-dir=/usr/local/bin && \
+    export PATH=$PATH:/usr/local/bin/google-cloud-sdk/bin && \
+    gcloud version
+
+# download and install go
 RUN wget $GOLANG_TARFILE_URL && \
     tar -C /usr/local -xzf $GOLANG_TARFILE && \
     export PATH=$PATH:/usr/local/go/bin && \
     rm $GOLANG_TARFILE && \
-    #apk del go && \
     go version
 
 ENV PATH=$PATH:/usr/local/go/bin
