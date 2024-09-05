@@ -244,23 +244,15 @@ func CreateGCPServiceAccount(userName, outputDir string) {
 		runCommand(baseCmd, "", args...)
 
 		time.Sleep(5 * time.Second) //TODO: fix this, see explanation below
-		// Get service account details
-		args = []string{"iam", "service-accounts", "list", "--format", "json"}
-		stdout, _, _ := runCommand(baseCmd, "", args...)
+		// Get service account email
+		args = []string{"iam", "service-accounts", "list", "--filter", fmt.Sprintf("displayName:%s", serviceAccountName), "--format", "value(email)"}
+		serviceAccountEmail, _, _ = runCommand(baseCmd, "", args...)
 
-		var accounts []map[string]interface{}
-		json.Unmarshal([]byte(stdout), &accounts)
+		// Get service account project ID
+		args = []string{"iam", "service-accounts", "list", "--filter", fmt.Sprintf("displayName:%s", serviceAccountName), "--format", "value(projectId)"}
+		projectID, _, _ := runCommand(baseCmd, "", args...)
 
-		var projectID string
-		for _, account := range accounts {
-			if strings.Contains(account["name"].(string), serviceAccountName+"@") {
-				serviceAccountEmail = account["email"].(string)
-				projectID = account["projectId"].(string)
-				break
-			}
-		}
-
-		// Grant permissions
+		// Define permissions
 		roles := []string{
 			"roles/compute.admin",
 			"roles/iam.securityAdmin",
