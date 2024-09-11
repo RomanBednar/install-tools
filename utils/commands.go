@@ -243,14 +243,21 @@ func CreateGCPServiceAccount(userName, outputDir string) {
 		args = []string{"iam", "service-accounts", "create", serviceAccountName, "--display-name", serviceAccountName}
 		runCommand(baseCmd, "", args...)
 
-		time.Sleep(5 * time.Second) //TODO: fix this, see explanation below
 		// Get service account email
 		args = []string{"iam", "service-accounts", "list", "--filter", fmt.Sprintf("displayName:%s", serviceAccountName), "--format", "value(email)"}
 		serviceAccountEmail, _, _ = runCommand(baseCmd, "", args...)
+		if serviceAccountEmail == "" {
+			log.Fatalf("Could not get service account email for %s", serviceAccountName)
+			return
+		}
 
 		// Get service account project ID
 		args = []string{"iam", "service-accounts", "list", "--filter", fmt.Sprintf("displayName:%s", serviceAccountName), "--format", "value(projectId)"}
 		projectID, _, _ := runCommand(baseCmd, "", args...)
+		if projectID == "" {
+			log.Fatalf("Could not get project ID for %s", serviceAccountName)
+			return
+		}
 
 		// Define permissions
 		roles := []string{
@@ -267,11 +274,11 @@ func CreateGCPServiceAccount(userName, outputDir string) {
 		}
 
 		//TODO: sometimes gcloud fails here with "There were concurrent policy changes. Please retry the whole read-modify-write with exponential backoff."
-		//TODO: IAM commands should have a retry and backoff - gcloud commands race with each other a lot
+		//TODO: IAM commands should have a retry and backoff - this is a known issue with gcloud and is caused by some request limit per second which role creation easily exceeds.
 		for _, role := range roles {
 			args = []string{"projects", "add-iam-policy-binding", projectID, "--member", "serviceAccount:" + serviceAccountEmail, "--role", role, "--condition", "None"}
 			runCommand(baseCmd, "", args...)
-			time.Sleep(1 * time.Second) //TODO: fix this
+			time.Sleep(3 * time.Second) //TODO: fix this after exponential backoff is implemented
 		}
 
 		// Create service account key
