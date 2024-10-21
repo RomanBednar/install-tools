@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -26,10 +25,9 @@ func getDomainFromURL(imageURL string) string {
 }
 
 func MustContainerEngineLogin(pullSecretFile, imageUrl, engine string) {
-	pullSecretDir := filepath.Dir(os.ExpandEnv(pullSecretFile))
 	registryDomain := getDomainFromURL(imageUrl)
 	baseCmd := engine
-	args := []string{"--config", pullSecretDir, "login", registryDomain}
+	args := []string{"login", "--authfile", os.ExpandEnv(pullSecretFile), registryDomain}
 	log.Printf("Verifying we can login with %v to: %v", engine, registryDomain)
 	_, _, rc := runCommand(baseCmd, "", args...)
 
