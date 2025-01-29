@@ -1,0 +1,44 @@
+additionalTrustBundlePolicy: Proxyonly
+apiVersion: v1
+baseDomain: devqe.ibmc.devcluster.openshift.com
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 3
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: rbednar
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 10.0.0.0/16
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  vsphere:
+    apiVIPs:
+    - 192.168.222.88
+    cluster: DEVQEcluster
+    datacenter: DEVQEdatacenter
+    defaultDatastore: vsanDatastore
+    ingressVIPs:
+    - 192.168.222.89
+    network: devqe-segment-222
+    password: CHANGEME
+    username: rbednar@devqe.ibmc.devcluster.openshift.com
+    vCenter: vcenter.devqe.ibmc.devcluster.openshift.com
+publish: External
+pullSecret: '{"auths":{"cloud.openshift.com":{"auth":"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K3JiZWRuYXJyZWRoYXRjb20xeGxtZmZsMnZmcmdkYmx6ZzJhem00bmJhbWM6QjJKN1daTk9DRFNaNjNPSU1DNU5CMUlNNVdOSVZZVVJBNU1ZOEJEOTNaUkw1SThWSkNVU1U5Nk5KQ0pMQkkxMQ==","email":"rbednar@redhat.com"},"registry.ci.openshift.org":{"auth":"dXNlcjpzaGEyNTZ+NWtfdFJQQmlTa0o1Ri1JMU9pdG5ZZjVvTGZhbXJqRFhNd2RqTF83dm5IWQ=="},"registry.build02.ci.openshift.org":{"auth":"dXNlcjpzaGEyNTZ+UUdldEhvVzEwejRPYlRrRWhDNW9HVjhNZFJ6OHdEeXZRMm82bTc2STVvbw=="},"registry.build05.ci.openshift.org":{"auth":"dXNlcjpzaGEyNTZ+MGpBbmlMRlZxckpsOXJMbzVLZm9QZUJFemN5bUV2RjE1cmkxdWtIZ3Uxbw=="},"registry.connect.redhat.com":{"auth":"Nzc1NTAyMHx1aGMtMVhMTWZmbDJWRnJHREJsWkcyYXptNG5iQW1DOmV5SmhiR2NpT2lKU1V6VXhNaUo5LmV5SnpkV0lpT2lKallXSmxNMkk1TkdJellUWTBOVE5pT0RVME1HVmxNVGs0TkdVek56VmlPQ0o5LmhsS3ZNVGJjbjhCTGwxaUpWZWk3QmNJNGdLNFIyejg2alg1dGx3MGtwZHlFNkZNUHZiM1NPTURfWHI5eUFTVlZXY1NrLTB6cG1OMUlZcXItdmpodHFLei1GR0t2SllFRVZoeXJmcmxFOGtFRmlxb2FEYmlxcV9KVEZoZjBSbkN0SUpnbnhBeHpwY19DelJHRUFlYTVLR0k0b2s3bVRFM1ZKdmZ2NUlwbV9Pc0NMdEVZNmo3bERjVk1qWm5mMlZkRk9vd2Q1Y1hfYTFYaHg2aFZ1X3dMTUNvMkhQMzdKNDNjM04xRm1ZYlRzWFRLWE9wV3RKWUNqTFpranZiMXFZX1U0STVaODcwY1ZNVFlTWjNqWGg0ZUZ4LXM5emdXRzFjY00tTll5bW9zM1RpZkljMW5BLXlRdFRJbE9DZTV1RHloRVlwbTdFSnBYa1dsUjIxUGNoVEtvYXg5TGRjODBXbXh2NmdJUG5VMTNOVWs3YWwtcWc4aWhaRmtmSjhkNlNIUzYxSTBNdHZDdWQ0Q1U1RHRWSjMtbkFydDAtMFgwS2k5cTlodG95WmRQY3huZUZ2aTc3Nlc2Y0xIXzBMTFl3TGhXb29XMWxNS1pwenpYbmdtTVJZdEhoSUNscG94UElEdHZXVkFWeXZJNG9aX1h2MHhWWWtwOHBJejh5aVpWRWFnQThza0UtZ05uUnNUWXNxNXhZX2pWQ2dKSFktbTFuaFppc29WS0pZQnlhd0sxLUpVYVV1Sy0tSy1Bd2xfeDRnVkdKSU5STnJHbjIzNGVaeGJ5VE9yYTNIRmlURVhSRDFTTEx6LWFQdWJjOWdaSnBoRWw0N2pqUmNFRTBRblgtZ29HbWZaeG5LWjg1UFkxdzM5SVQyY00waFRZamN5ODFNR0FfUGo5RkU1OHJB","email":"rbednar@redhat.com"},"registry.redhat.io":{"auth":"Nzc1NTAyMHx1aGMtMVhMTWZmbDJWRnJHREJsWkcyYXptNG5iQW1DOmV5SmhiR2NpT2lKU1V6VXhNaUo5LmV5SnpkV0lpT2lKallXSmxNMkk1TkdJellUWTBOVE5pT0RVME1HVmxNVGs0TkdVek56VmlPQ0o5LmhsS3ZNVGJjbjhCTGwxaUpWZWk3QmNJNGdLNFIyejg2alg1dGx3MGtwZHlFNkZNUHZiM1NPTURfWHI5eUFTVlZXY1NrLTB6cG1OMUlZcXItdmpodHFLei1GR0t2SllFRVZoeXJmcmxFOGtFRmlxb2FEYmlxcV9KVEZoZjBSbkN0SUpnbnhBeHpwY19DelJHRUFlYTVLR0k0b2s3bVRFM1ZKdmZ2NUlwbV9Pc0NMdEVZNmo3bERjVk1qWm5mMlZkRk9vd2Q1Y1hfYTFYaHg2aFZ1X3dMTUNvMkhQMzdKNDNjM04xRm1ZYlRzWFRLWE9wV3RKWUNqTFpranZiMXFZX1U0STVaODcwY1ZNVFlTWjNqWGg0ZUZ4LXM5emdXRzFjY00tTll5bW9zM1RpZkljMW5BLXlRdFRJbE9DZTV1RHloRVlwbTdFSnBYa1dsUjIxUGNoVEtvYXg5TGRjODBXbXh2NmdJUG5VMTNOVWs3YWwtcWc4aWhaRmtmSjhkNlNIUzYxSTBNdHZDdWQ0Q1U1RHRWSjMtbkFydDAtMFgwS2k5cTlodG95WmRQY3huZUZ2aTc3Nlc2Y0xIXzBMTFl3TGhXb29XMWxNS1pwenpYbmdtTVJZdEhoSUNscG94UElEdHZXVkFWeXZJNG9aX1h2MHhWWWtwOHBJejh5aVpWRWFnQThza0UtZ05uUnNUWXNxNXhZX2pWQ2dKSFktbTFuaFppc29WS0pZQnlhd0sxLUpVYVV1Sy0tSy1Bd2xfeDRnVkdKSU5STnJHbjIzNGVaeGJ5VE9yYTNIRmlURVhSRDFTTEx6LWFQdWJjOWdaSnBoRWw0N2pqUmNFRTBRblgtZ29HbWZaeG5LWjg1UFkxdzM5SVQyY00waFRZamN5ODFNR0FfUGo5RkU1OHJB","email":"rbednar@redhat.com"},"quay.io":{"auth":"b3BlbnNoaWZ0LXJlbGVhc2UtZGV2K3JiZWRuYXJyZWRoYXRjb20xeGxtZmZsMnZmcmdkYmx6ZzJhem00bmJhbWM6QjJKN1daTk9DRFNaNjNPSU1DNU5CMUlNNVdOSVZZVVJBNU1ZOEJEOTNaUkw1SThWSkNVU1U5Nk5KQ0pMQkkxMQ=="}}}'
+sshKey: |
+  ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDRreoivnLGBnBGGGPffOwy7D701lDm+3QZwxEgMczP7QrS+r+I1sQLK1qv/VJ+vuP3zEAI1x456TV/5E4U1shwghzxHEvN7+JhUytryEgFg1UqhSAwD4OGd2LFUD0QtrBL2kNhx3wdMhJjGibWvt5wZ3dL69mB4uYv77eRafahsZec20VBT5BhbFSk6HnE8SWKbZQ0/F6rI2pJb8KPcdTHJweTHoNUFnZ+AKFGMvZ4MuX1L5XWR7vmNl2bYvaypSS5NXSXYVAfvRERQeD+uDIZKwqgu1p+6Pa9sNft8TjLkyc2iwsq/1wv7ZXbLN5FhTZzvHXcDkkBAOnuEJvcnSzuaLdjyczSZfK2YEkMP+JVYcm1O8fOo3ee6xvHsHUaDM3iH4U4LJyIZhguUyAxSF+YVkzVpZP8rAWVgSoBccsIMbxy7W3hcQqaPW+2LIUe4JUcdgds74J5ysLZhLLURQzp86vHgURssp9CTJ86zhzlEOPo4ktfaohY03u7+idplL0= rbednar@rbednar-mac
