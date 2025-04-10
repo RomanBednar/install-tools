@@ -20,10 +20,13 @@ const (
 	defaultFailedCode     = 1
 	defaultGcpProject     = "openshift-gce-devel"
 	defaultCredRequestDir = "./credRequests"
+
+	// Name of a resource group we have preconfigured in Azure, used by ccoctl to find the right DNS zone
+	defaultAzureResourceGroup = "os4-common"
 )
 
 func runCommand(name string, workDir string, args ...string) (stdout string, stderr string, exitCode int) {
-	log.Println("run command:", name, args)
+	log.Println("run command:", name, strings.Join(args, " "))
 	var outbuf, errbuf bytes.Buffer
 	cmd := exec.Command(name, args...)
 	cmd.Dir = workDir
@@ -67,7 +70,7 @@ func runCommand(name string, workDir string, args ...string) (stdout string, std
 
 func mustBeSupportedCloud(cloud string) {
 	// check if cloud provided is one of supported values
-	supportedClouds := []string{"gcp", "aws"}
+	supportedClouds := []string{"gcp", "aws", "azure"}
 	var supported bool
 	for _, c := range supportedClouds {
 		if c == cloud {
@@ -203,6 +206,10 @@ func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
 	log.Println("Getting Infrastructure name")
 	out, _, _ := runCommand(baseCmd, outputDir, args...)
 	infrastructureName := strings.TrimSuffix(out, "\n")
+	if cloud == "azure" {
+		// When passing a --name to ccoctl for Azure, the tool uses it for storage account name and has to be sanitized.
+		infrastructureName = sanitizeAzureStorageName(infrastructureName)
+	}
 	log.Printf("Infrastructure name found: %v", infrastructureName)
 
 	baseCmd = "./ccoctl"
@@ -213,6 +220,10 @@ func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
 		args = append(args, []string{"--project", defaultGcpProject}...)
 	case "aws":
 		args = append(args, "--create-private-s3-bucket")
+	case "azure":
+		azureAccount := getAzureCredentials()
+
+		args = append(args, "--subscription-id", azureAccount.ID, "--dnszone-resource-group-name", defaultAzureResourceGroup, "--tenant-id", azureAccount.TenantID)
 	}
 
 	if dryRun {
@@ -320,6 +331,21 @@ func mustGcloudAuth() {
 	panic("Not logged in to gcloud. Please run 'gcloud auth login' first.")
 }
 
+func getAzureCredentials() azureAccountType {
+	baseCmd := "az"
+	args := []string{"account", "show", "-o", "json"}
+	stdout, stderr, code := runCommand(baseCmd, "", args...)
+	if code != 0 {
+		panic(fmt.Sprintf("Error running \"az account show\", make sure to first log in with \"az login\": %s", stderr))
+	}
+	var azureAccount azureAccountType
+	err := json.Unmarshal([]byte(stdout), &azureAccount)
+	if err != nil {
+		panic(fmt.Sprintf("Error parsing az account show output: %v", err))
+	}
+	return azureAccount
+}
+
 func checkVCenterReachable() {
 	url := "https://vcenter.devqe.ibmc.devcluster.openshift.com/"
 	client := &http.Client{
@@ -355,6 +381,57 @@ func DestroyCluster(installDir string, verbose bool) {
 	}
 	log.Printf("Destroying cluster.")
 	_, _, _ = runCommand(baseCmd, installDir, args...)
+}
+
+type azureAccountType struct {
+	EnvironmentName     string `json:"environmentName"`
+	HomeTenantID        string `json:"homeTenantId"`
+	ID                  string `json:"id"` //This is the same as Subscription ID
+	IsDefault           bool   `json:"isDefault"`
+	ManagedByTenants    []any  `json:"managedByTenants"`
+	Name                string `json:"name"`
+	State               string `json:"state"`
+	TenantDefaultDomain string `json:"tenantDefaultDomain"`
+	TenantDisplayName   string `json:"tenantDisplayName"`
+	TenantID            string `json:"tenantId"`
+	User                struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+	} `json:"user"`
+}
+
+// sanitizeAzureStorageName ensures the string meets Azure storage account requirements:
+// - Between 3 and 24 characters
+// - Only lowercase letters and numbers
+// - Trims newline characters
+func sanitizeAzureStorageName(name string) string {
+	// First trim the newline character
+	name = strings.TrimSuffix(name, "\n")
+
+	// Convert to lowercase
+	name = strings.ToLower(name)
+
+	// Keep only lowercase letters and numbers
+	var result strings.Builder
+	for _, char := range name {
+		if (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') {
+			result.WriteRune(char)
+		}
+	}
+
+	// Truncate to 24 characters if longer
+	sanitized := result.String()
+	if len(sanitized) > 24 {
+		sanitized = sanitized[:24]
+	}
+
+	// Ensure at least 3 characters
+	// If not enough valid characters, append placeholder digits
+	for len(sanitized) < 3 {
+		sanitized += "0"
+	}
+
+	return sanitized
 }
 
 /////////////

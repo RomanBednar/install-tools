@@ -3,11 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/RomanBednar/install-tools/utils"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/RomanBednar/install-tools/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -17,7 +17,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("action", "a", "create", "Action to perform. Valid values are: create, destroy.")
 	viper.BindPFlag("action", rootCmd.PersistentFlags().Lookup("action"))
 
-	rootCmd.PersistentFlags().StringP("cloud", "c", "aws", "Cloud to use for installation.")
+	rootCmd.PersistentFlags().StringP("cloud", "c", "aws", fmt.Sprintf("Cloud to use for installation. Valid values are: %v", strings.Join(utils.GetCloudKeys(), ", ")))
 	viper.BindPFlag("cloud", rootCmd.PersistentFlags().Lookup("cloud"))
 
 	//TODO: add a scraper to resolve image url by version only (e.g. --image 4.10.0-rc.2)

@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/RomanBednar/install-tools/templates"
-	"github.com/manifoldco/promptui"
-	"golang.org/x/term"
 	"log"
 	"os"
 	"path/filepath"
 	"syscall"
 	"text/template"
+
+	"github.com/RomanBednar/install-tools/templates"
+	"github.com/manifoldco/promptui"
+	"golang.org/x/term"
 )
 
 func userConfirm() bool {
@@ -55,15 +56,29 @@ type TemplateParser struct {
 	cloudTemplatesMap map[string]string
 }
 
+// cloudTemplatesMap maps --cloud <NAME> argument to a specific template file.
+// TODO: Refactor - cloud variants like WIF/WI/STS should be a parameter of the CLI instead.
+// For workload identity this is basically just one parameter in the template,
+// similar for ODF where we just make nodes more beefy.
 var cloudTemplatesMap = map[string]string{
-	"aws":     "aws_basic.tmpl",
-	"aws-sts": "aws_sts.tmpl",
-	"aws-odf": "aws_odf.tmpl",
-	"vsphere": "vsphere_basic.tmpl",
-	"alibaba": "alibaba_basic.tmpl",
-	"azure":   "azure_basic.tmpl",
-	"gcp-wif": "gcp_wif.tmpl",
-	"gcp":     "gcp_basic.tmpl",
+	"aws":      "aws_basic.tmpl",
+	"aws-sts":  "aws_sts.tmpl",
+	"aws-odf":  "aws_odf.tmpl",
+	"vsphere":  "vsphere_basic.tmpl",
+	"alibaba":  "alibaba_basic.tmpl",
+	"azure":    "azure_basic.tmpl",
+	"azure-wi": "azure_wi.tmpl",
+	"gcp-wif":  "gcp_wif.tmpl",
+	"gcp":      "gcp_basic.tmpl",
+}
+
+// GetCloudKeys returns a slice of all cloud keys from cloudTemplatesMap
+func GetCloudKeys() []string {
+	keys := make([]string, 0, len(cloudTemplatesMap))
+	for k := range cloudTemplatesMap {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func NewTemplateParser(data *Config) TemplateParser {

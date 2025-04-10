@@ -1,0 +1,37 @@
+apiVersion: v1
+baseDomain: storage.azure.devcluster.openshift.com
+credentialsMode: Manual
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 3
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  creationTimestamp: null
+  name: {{ .UserName }}-{{ .ClusterName }}
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 10.0.0.0/16
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  azure:
+    baseDomainResourceGroupName: os4-common
+    cloudName: AzurePublicCloud
+    outboundType: Loadbalancer
+    region: centralus
+publish: External
+pullSecret: '{{ .PullSecret }}'
+sshKey: |
+    {{ .SshPublicKey }}

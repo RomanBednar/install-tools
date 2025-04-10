@@ -40,6 +40,9 @@ func (d *InstallDriver) Run() {
 	case "azure":
 		fmt.Println("Driver is preparing Azure installation.")
 		d.azurePreparation()
+	case "azure-wi":
+		fmt.Println("Driver is preparing Azure Workload Identity installation.")
+		d.azureWIPreparation()
 	default:
 		panic(fmt.Errorf("Unsupported cloud selected: %v\n", d.conf.Cloud))
 	}
@@ -97,6 +100,13 @@ func (d *InstallDriver) azurePreparation() {
 	// Extract and unarchive tools from image
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	// Unarchive(d.conf.OutputDir, d.conf.OutputDir)
+}
+
+func (d *InstallDriver) azureWIPreparation() {
+	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	CreateInstallManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, "azure")
+	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
+	ExecuteCcoctl(d.conf.OutputDir, "azure", "centralus", d.conf.DryRun)
 }
 
 func Run(conf *Config) {

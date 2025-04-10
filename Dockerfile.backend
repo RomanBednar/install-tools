@@ -21,7 +21,7 @@ COPY artifacts/linux-ca-vcenter/* /usr/local/share/ca-certificates/
 # bash is needed for gcloud installation and runtime to work
 RUN apk update && \
     apk upgrade --available && \
-    apk add curl bash python3 gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat && \
+    apk add curl bash python3 gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat pipx linux-headers python3-dev && \
     update-ca-certificates && \
     wget ${OC_CLI_URL} -O /tmp/oc.tar.gz && \
     tar xvzf /tmp/oc.tar.gz --directory /bin
@@ -31,6 +31,9 @@ RUN curl https://sdk.cloud.google.com > /tmp/install.sh && \
     bash /tmp/install.sh --disable-prompts --install-dir=/usr/local/bin && \
     export PATH=$PATH:/usr/local/bin/google-cloud-sdk/bin && \
     gcloud version
+
+# download and install azure-cli (az)
+RUN pipx install azure-cli
 
 # download and install go
 RUN wget $GOLANG_TARFILE_URL && \
