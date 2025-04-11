@@ -46,6 +46,7 @@ type Config struct {
 	PullSecretFile          string `ini:"pullSecretFile"`
 	PullSecret              string `ini:"pullSecret"`
 	Engine                  string `ini:"engine"`
+	ResourceGroup           string `ini:"resourceGroup"` // Obtained later by sanitizing infra name from manifest file if unset.
 	DryRun                  bool   `ini:"dryRun"`
 }
 
@@ -187,13 +188,6 @@ func (t *TemplateParser) ParseTemplate() {
 	//	password := passwordPrompt("Please enter password for vcenter (vcenter.devqe.ibmc.devcluster.openshift.com)")
 	//	t.data.VSpherePassword = password
 	//}
-
-	//TODO: this probably should not be here - move to main?
-	fmt.Printf("Creating output dir: %v\n", t.data.OutputDir)
-	err := os.MkdirAll(t.data.OutputDir, 0755)
-	if os.IsNotExist(err) {
-		panic(fmt.Errorf("Could not create output dir: %v Error: %v", t.data.OutputDir, err))
-	}
 
 	f, err := os.OpenFile(output, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {

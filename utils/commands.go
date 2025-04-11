@@ -198,23 +198,12 @@ func CreateInstallManifests(pullSecretFile, outputDir, imageUrl, cloud string) {
 }
 
 // ExecuteCcoctl must run after CreateInstallManifests and ExtractCcoctl
-func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
+func ExecuteCcoctl(outputDir, cloud, region, rgName string, dryRun bool) {
 	mustBeSupportedCloud(cloud)
 
-	baseCmd := "awk"
-	args := []string{"/infrastructureName:/{print $2}", "manifests/cluster-infrastructure-02-config.yml"}
-	log.Println("Getting Infrastructure name")
-	out, _, _ := runCommand(baseCmd, outputDir, args...)
-	infrastructureName := strings.TrimSuffix(out, "\n")
-	if cloud == "azure" {
-		// When passing a --name to ccoctl for Azure, the tool uses it for storage account name and has to be sanitized.
-		infrastructureName = sanitizeAzureStorageName(infrastructureName)
-	}
-	log.Printf("Infrastructure name found: %v", infrastructureName)
-
-	baseCmd = "./ccoctl"
+	baseCmd := "./ccoctl"
 	// Omitting --output-dir flag to let ccoctl save manifests to ./manifests (default) - from there we don't have to move it.
-	args = []string{cloud, "create-all", "--name", infrastructureName, "--region", region, "--credentials-requests-dir", defaultCredRequestDir}
+	args := []string{cloud, "create-all", "--name", rgName, "--region", region, "--credentials-requests-dir", defaultCredRequestDir}
 	switch cloud {
 	case "gcp":
 		args = append(args, []string{"--project", defaultGcpProject}...)
@@ -222,7 +211,6 @@ func ExecuteCcoctl(outputDir, cloud, region string, dryRun bool) {
 		args = append(args, "--create-private-s3-bucket")
 	case "azure":
 		azureAccount := getAzureCredentials()
-
 		args = append(args, "--subscription-id", azureAccount.ID, "--dnszone-resource-group-name", defaultAzureResourceGroup, "--tenant-id", azureAccount.TenantID)
 	}
 
@@ -346,6 +334,21 @@ func getAzureCredentials() azureAccountType {
 	return azureAccount
 }
 
+//func getInfrastructureName(dir string, sanitize bool) string {
+//	baseCmd := "awk"
+//	args := []string{"/infrastructureName:/{print $2}", "manifests/cluster-infrastructure-02-config.yml"}
+//	log.Println("Getting Infrastructure name")
+//	out, _, _ := runCommand(baseCmd, dir, args...)
+//	infrastructureName := strings.TrimSuffix(out, "\n")
+//	if sanitize {
+//		// When passing a --name to ccoctl for Azure, the tool uses it for storage account name and has to be sanitized.
+//		infrastructureName = sanitizeResourceGroupName(infrastructureName)
+//	}
+//	log.Printf("Infrastructure name found: %v", infrastructureName)
+//
+//	return infrastructureName
+//}
+
 func checkVCenterReachable() {
 	url := "https://vcenter.devqe.ibmc.devcluster.openshift.com/"
 	client := &http.Client{
@@ -400,11 +403,11 @@ type azureAccountType struct {
 	} `json:"user"`
 }
 
-// sanitizeAzureStorageName ensures the string meets Azure storage account requirements:
+// sanitizeResourceGroupName ensures the string meets Azure storage account requirements:
 // - Between 3 and 24 characters
 // - Only lowercase letters and numbers
 // - Trims newline characters
-func sanitizeAzureStorageName(name string) string {
+func SanitizeResourceGroupName(name string) string {
 	// First trim the newline character
 	name = strings.TrimSuffix(name, "\n")
 

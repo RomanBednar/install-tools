@@ -28,6 +28,7 @@ networking:
 platform:
   azure:
     baseDomainResourceGroupName: os4-common
+    resourceGroupName: {{ .ResourceGroup }}
     cloudName: AzurePublicCloud
     outboundType: Loadbalancer
     region: centralus

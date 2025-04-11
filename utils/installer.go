@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"log"
+	"os"
 )
 
 type InstallDriver struct {
@@ -60,7 +61,7 @@ func (d *InstallDriver) awsSTSPreparation() {
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	CreateInstallManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, "aws")
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	ExecuteCcoctl(d.conf.OutputDir, "aws", "us-east-1", d.conf.DryRun)
+	ExecuteCcoctl(d.conf.OutputDir, "aws", "us-east-1", d.conf.ResourceGroup, d.conf.DryRun)
 }
 
 // Installing cluster on GCP requires a service account which is pruned every ~3 days.
@@ -71,7 +72,7 @@ func (d *InstallDriver) gcpWIFPreparation() {
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 
 	//NOTE: for some reason the region for ccoctl binary does not match region in install-config.yaml
-	ExecuteCcoctl(d.conf.OutputDir, "gcp", "us", d.conf.DryRun)
+	ExecuteCcoctl(d.conf.OutputDir, "gcp", "us", d.conf.ResourceGroup, d.conf.DryRun)
 }
 
 // Installing cluster on GCP requires a service account which is pruned every ~3 days.
@@ -106,7 +107,7 @@ func (d *InstallDriver) azureWIPreparation() {
 	ExtractTools(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
 	CreateInstallManifests(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image, "azure")
 	ExtractCcoctl(d.conf.PullSecretFile, d.conf.OutputDir, d.conf.Image)
-	ExecuteCcoctl(d.conf.OutputDir, "azure", "centralus", d.conf.DryRun)
+	ExecuteCcoctl(d.conf.OutputDir, "azure", "centralus", d.conf.ResourceGroup, d.conf.DryRun)
 }
 
 func Run(conf *Config) {
@@ -116,6 +117,20 @@ func Run(conf *Config) {
 	// This will start cluster installation/uninstallation.
 	switch conf.Action {
 	case "create":
+		fmt.Printf("Creating output dir: %v\n", conf.OutputDir)
+		err := os.MkdirAll(conf.OutputDir, 0755)
+		if os.IsNotExist(err) {
+			panic(fmt.Errorf("could not create output dir: %v Error: %v", conf.OutputDir, err))
+		}
+
+		// If installing workload identity cluster on Azure we need to pass sanitized resource group name on two places:
+		// 1. ccoctl --name argument
+		// 2. resourceGroupName in install-config
+		// These have to match and not contain any special characters!!!
+		if conf.Cloud == "azure-wi" {
+			conf.ResourceGroup = SanitizeResourceGroupName(conf.ResourceGroup)
+		}
+
 		// This will create the install-config.yaml file and save to outputDir.
 		parser := NewTemplateParser(conf)
 		parser.ParseTemplate()
