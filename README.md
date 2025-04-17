@@ -11,19 +11,8 @@
       2. Config files - two locations are searched (./config and ~/.install-tools) for a file named "conf.env", homedir has higher priority.
       3. Environment variables - higher priority than config files
       4. Command line arguments - highest priority
-   2. Create a config file in one of the two locations mentioned above, e.g. ~/.install-tools/conf.env, example: 
-   
-   ```
-   cloud=aws
-   clusterName=mycluster-02
-   userName=jdoe
-   outputDir=./output
-   cloudRegion=eu-central-1
-   sshPublicKeyFile=${HOME}/.ssh/id_rsa.pub
-   pullSecretFile=${HOME}/.docker/config.json
-   imageTag=install-tools:latest
-   engine=docker
-   ```
+   2. Create a config file in one of the two locations mentioned above, e.g. ~/.install-tools/conf.env.
+      Start by copying `conf.env.template` file to one of the destinations and editing it to set custom values.
 
 4. Start the installation:
 
