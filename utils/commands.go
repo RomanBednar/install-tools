@@ -350,7 +350,7 @@ func getAzureCredentials() azureAccountType {
 //}
 
 func checkVCenterReachable() {
-	url := "https://vcenter.devqe.ibmc.devcluster.openshift.com/"
+	url := "https://vcenter-2.devqe.ibmc.devcluster.openshift.com/"
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
