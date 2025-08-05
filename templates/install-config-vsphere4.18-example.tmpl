@@ -1,0 +1,33 @@
+apiVersion: v1
+baseDomain: {{ .VSphereBaseDomain }}
+compute:
+- architecture: amd64
+  hyperthreading: Enabled
+  name: worker
+  platform: {}
+  replicas: 3
+controlPlane:
+  architecture: amd64
+  hyperthreading: Enabled
+  name: master
+  platform: {}
+  replicas: 3
+metadata:
+  name: {{ .UserName }}
+platform:
+  vsphere:
+    apiVIP: {{ .VSphereApiVIP }}
+    cluster: DEVQEcluster
+    datacenter: DEVQEdatacenter
+    defaultDatastore: vsanDatastore
+    ingressVIP: {{ .VSphereIngressVIP }}
+    network: devqe-segment-222
+    username: {{ .UserName }}@{{ .VSphereBaseDomain }}
+    password: {{ .VSpherePassword }}
+    vCenter: {{ .VSphereVCenterSubdomain }}.{{ .VSphereBaseDomain }}
+networking:
+  machineNetwork:
+  - cidr: 192.168.222.0/24
+pullSecret: '{{ .PullSecret }}'
+sshKey: |
+  {{ .SshPublicKey }}

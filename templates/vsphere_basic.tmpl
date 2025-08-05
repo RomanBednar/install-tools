@@ -1,5 +1,6 @@
+additionalTrustBundlePolicy: Proxyonly
 apiVersion: v1
-baseDomain: {{ .VSphereBaseDomain }}
+baseDomain:  {{ .VSphereBaseDomain }}
 compute:
 - architecture: amd64
   hyperthreading: Enabled
@@ -14,20 +15,41 @@ controlPlane:
   replicas: 3
 metadata:
   name: {{ .UserName }}
+networking:
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  machineNetwork:
+  - cidr: 10.0.0.0/16
+  networkType: OVNKubernetes
+  serviceNetwork:
+  - 172.30.0.0/16
 platform:
   vsphere:
-    apiVIP: {{ .VSphereApiVIP }}
-    cluster: DEVQEcluster
-    datacenter: DEVQEdatacenter
-    defaultDatastore: vsanDatastore
-    ingressVIP: {{ .VSphereIngressVIP }}
-    network: devqe-segment-222
-    username: {{ .UserName }}@{{ .VSphereBaseDomain }}
-    password: {{ .VSpherePassword }}
-    vCenter: {{ .VSphereVCenterSubdomain }}.{{ .VSphereBaseDomain }}
-networking:
-  machineNetwork:
-  - cidr: 192.168.222.0/24
+    apiVIPs:
+    - {{ .VSphereApiVIP }}
+    failureDomains:
+    - name: generated-failure-domain
+      region: generated-region
+      server: vcenter-2.devqe.ibmc.devcluster.openshift.com
+      topology:
+        computeCluster: /DEVQEdatacenter-2/host/DEVQEcluster-2
+        datacenter: DEVQEdatacenter-2
+        datastore: /DEVQEdatacenter-2/datastore/vsanDatastore
+        networks:
+        - devqe-segment-222
+        resourcePool: /DEVQEdatacenter-2/host/DEVQEcluster-2/Resources
+      zone: generated-zone
+    ingressVIPs:
+    - {{ .VSphereIngressVIP }}
+    vcenters:
+    - datacenters:
+      - DEVQEdatacenter-2
+      password: {{ .VSpherePassword }}
+      port: 443
+      server: {{ .VSphereVCenterSubdomain }}.{{ .VSphereBaseDomain }}
+      user: {{ .UserName }}@{{ .VSphereBaseDomain }}
+publish: External
 pullSecret: '{{ .PullSecret }}'
 sshKey: |
   {{ .SshPublicKey }}
