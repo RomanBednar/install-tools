@@ -33,7 +33,7 @@ RUN curl https://sdk.cloud.google.com > /tmp/install.sh && \
     gcloud version
 
 # download and install azure-cli (az)
-RUN pipx install azure-cli
+RUN pipx install azure-cli & pipx ensurepath
 
 # download and install go
 RUN wget $GOLANG_TARFILE_URL && \
