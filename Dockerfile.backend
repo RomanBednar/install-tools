@@ -21,7 +21,7 @@ COPY artifacts/linux-ca-vcenter/* /usr/local/share/ca-certificates/
 # bash is needed for gcloud installation and runtime to work
 RUN apk update && \
     apk upgrade --available && \
-    apk add curl bash python3 gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat pipx linux-headers python3-dev && \
+    apk add curl bash python3 gcc bash musl-dev openssl-dev ca-certificates podman fuse-overlayfs libc6-compat pipx linux-headers python3-dev make && \
     update-ca-certificates && \
     wget ${OC_CLI_URL} -O /tmp/oc.tar.gz && \
     tar xvzf /tmp/oc.tar.gz --directory /bin
