@@ -7,4 +7,4 @@ k8s.io/client-go/tools/watch/informerwatcher.go:146: Failed to watch *v1.ConfigM
 ```
 
 - they are required for running openshift-install on vsphere
-- can be obtained from DevQE vcenter home page under `Download trusted root CA certificates` here: https://vcenter.devqe.ibmc.devcluster.openshift.com/
+- can be obtained from DevQE vcenter home page under `Download trusted root CA certificates` here: https://vcenter-2.devqe.ibmc.devcluster.openshift.com
