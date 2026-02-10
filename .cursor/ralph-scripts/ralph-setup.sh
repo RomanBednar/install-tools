@@ -42,10 +42,14 @@ fi
 
 # Model options
 MODELS=(
+  "opus-4.6-thinking"
+  "opus-4.6"
   "opus-4.5-thinking"
   "sonnet-4.5-thinking"
+  "sonnet-4.5"
+  "gpt-5.3-codex"
   "gpt-5.2-high"
-  "composer-1"
+  "composer-1.5"
   "Custom..."
 )
 
