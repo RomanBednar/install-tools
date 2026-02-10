@@ -22,3 +22,6 @@ config
 
 # Dir for storing secrets
 secrets
+
+# Ralph config (may contain API key)
+.cursor/ralph-config.json
