@@ -25,3 +25,7 @@ secrets
 
 # Ralph config (may contain API key)
 .cursor/ralph-config.json
+
+# Frontend build output
+frontend/.next
+frontend/node_modules

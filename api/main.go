@@ -3,18 +3,26 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/RomanBednar/install-tools/utils"
-	"gopkg.in/ini.v1"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
+	"sync"
+
+	"github.com/RomanBednar/install-tools/utils"
+	"gopkg.in/ini.v1"
 )
 
 var (
 	filePath   string
 	fileEvents = make(chan string)
+
+	// Operation status tracking
+	opMutex   sync.Mutex
+	opStatus  = "idle" // idle, running, completed, error
+	opError   string
+	opMessage string
 )
 
 const (
@@ -22,12 +30,27 @@ const (
 	defaultEngine    = "podman" // users are not allowed to change this now, requires container environment changes
 )
 
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func main() {
 	log.Println("Starting server on :8080")
-	http.HandleFunc("/save", saveInstallerConfig)
-	http.HandleFunc("/action", runAction)
-	http.HandleFunc("/log", logFileHandler)
-	http.HandleFunc("/hello", helloHandler)
+	http.HandleFunc("/save", corsMiddleware(saveInstallerConfig))
+	http.HandleFunc("/action", corsMiddleware(runAction))
+	http.HandleFunc("/log", corsMiddleware(logFileHandler))
+	http.HandleFunc("/hello", corsMiddleware(helloHandler))
+	http.HandleFunc("/status", corsMiddleware(statusHandler))
+	http.HandleFunc("/check-dir", corsMiddleware(checkDirHandler))
 
 	http.ListenAndServe(":8080", nil)
 }
@@ -37,6 +60,74 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello, world!")
 }
 
+func statusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	opMutex.Lock()
+	defer opMutex.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  opStatus,
+		"error":   opError,
+		"message": opMessage,
+	})
+}
+
+func checkDirHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	dirPath := r.URL.Query().Get("path")
+	if dirPath == "" {
+		http.Error(w, "path parameter required", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	// Check if directory exists
+	info, err := os.Stat(dirPath)
+	if os.IsNotExist(err) {
+		// Directory doesn't exist - that's fine, it's "empty"
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"exists": false,
+			"empty":  true,
+		})
+		return
+	}
+
+	if !info.IsDir() {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"exists": true,
+			"empty":  false,
+			"error":  "path is not a directory",
+		})
+		return
+	}
+
+	// Check if directory is empty
+	entries, err := os.ReadDir(dirPath)
+	if err != nil {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"exists": true,
+			"empty":  false,
+			"error":  fmt.Sprintf("cannot read directory: %v", err),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"exists": true,
+		"empty":  len(entries) == 0,
+	})
+}
+
 func runAction(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Received request: %#v", r)
 	if r.Method != http.MethodPost {
@@ -44,6 +135,15 @@ func runAction(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Check if already running
+	opMutex.Lock()
+	if opStatus == "running" {
+		opMutex.Unlock()
+		http.Error(w, "An operation is already running", http.StatusConflict)
+		return
+	}
+	opMutex.Unlock()
 
 	log.Printf("Received body: %#v\n", r.Body)
 
@@ -63,6 +163,8 @@ func runAction(w http.ResponseWriter, r *http.Request) {
 	configFilePath, err := os.ReadFile(locationFilePath)
 	if err != nil {
 		fmt.Printf("error reading config location file: %v", err)
+		http.Error(w, fmt.Sprintf("Error reading config location file: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	configFile, err := os.ReadFile(string(configFilePath))
@@ -77,25 +179,58 @@ func runAction(w http.ResponseWriter, r *http.Request) {
 	file, err := ini.Load(configFile)
 	if err != nil {
 		fmt.Printf("Failed to load config file: %v\n", err)
-		os.Exit(1)
+		http.Error(w, fmt.Sprintf("Failed to load config file: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	// Unmarshal the INI file into the struct
 	if err := file.MapTo(&config); err != nil {
 		fmt.Printf("Failed to unmarshal config file: %v\n", err)
 		http.Error(w, fmt.Sprintf("Failed to unmarshal config file: %v", err), http.StatusInternalServerError)
+		return
 	}
 	// Add action to config
 	config.Action = action.Action
 
 	fmt.Printf("Running with configuration: %#v\n", config)
 
-	utils.Run(&config)
+	// Set status to running
+	opMutex.Lock()
+	opStatus = "running"
+	opError = ""
+	opMessage = fmt.Sprintf("Running %s...", action.Action)
+	opMutex.Unlock()
 
-	// Respond with success message
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "Action received successfully")
+	// Run asynchronously
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				opMutex.Lock()
+				opStatus = "error"
+				opError = fmt.Sprintf("%v", r)
+				opMessage = "Operation failed"
+				opMutex.Unlock()
+				log.Printf("Operation panicked: %v", r)
+			}
+		}()
 
+		utils.Run(&config)
+
+		opMutex.Lock()
+		opStatus = "completed"
+		opError = ""
+		opMessage = fmt.Sprintf("Operation %s completed successfully", action.Action)
+		opMutex.Unlock()
+		log.Printf("Operation %s completed successfully", action.Action)
+	}()
+
+	// Respond immediately
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "running",
+		"message": fmt.Sprintf("Operation %s started", action.Action),
+	})
 }
 
 func saveInstallerConfig(w http.ResponseWriter, r *http.Request) {
@@ -110,6 +245,7 @@ func saveInstallerConfig(w http.ResponseWriter, r *http.Request) {
 		CloudRegion      string `json:"cloudRegion"`
 		Cloud            string `json:"cloud"`
 		DryRun           string `json:"dryRun"`
+		Action           string `json:"action"`
 	}
 
 	log.Printf("Received request to store installerConfig: %#v", r)
@@ -136,7 +272,7 @@ func saveInstallerConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	file, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Printf("error opening conf.env file: %v", err)
 		http.Error(w, fmt.Sprintf("Error opening conf.env file: %v", err), http.StatusInternalServerError)
@@ -145,8 +281,7 @@ func saveInstallerConfig(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	log.Printf("Saved config to file: %v", configFilePath)
 
-	format := fmt.Sprintf(`
-userName=%s
+	format := fmt.Sprintf(`userName=%s
 sshPublicKeyFile=%s
 pullSecretFile=%s
 outputDir=%s
@@ -155,7 +290,8 @@ image=%s
 cloudRegion=%s
 cloud=%s
 dryRun=%s
-engine=%s`,
+engine=%s
+`,
 		installerConfig.Username,
 		installerConfig.SshPublicKeyFile,
 		installerConfig.PullSecretFile,
@@ -167,9 +303,6 @@ engine=%s`,
 		installerConfig.DryRun,
 		defaultEngine,
 	)
-
-	format = strings.TrimSpace(format)
-	format += "\n"
 
 	// Write data to conf.env file
 	if _, err := fmt.Fprintf(
@@ -188,7 +321,7 @@ engine=%s`,
 	}
 
 	log.Printf("Storing config location to: %v\n", locationFilePath)
-	locationFile, err := os.OpenFile(locationFilePath, os.O_WRONLY|os.O_CREATE, 0644)
+	locationFile, err := os.OpenFile(locationFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		fmt.Printf("error opening config-location file: %v", err)
 		http.Error(w, fmt.Sprintf("Error opening config-location file: %v", err), http.StatusInternalServerError)
@@ -204,10 +337,20 @@ engine=%s`,
 		return
 	}
 
-	// Respond with success message
-	w.WriteHeader(http.StatusOK)
+	// Reset operation status when new config is saved
+	opMutex.Lock()
+	opStatus = "idle"
+	opError = ""
+	opMessage = ""
+	opMutex.Unlock()
 
-	fmt.Fprintln(w, "Config stored successfully")
+	// Respond with success message
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"message": "Config stored successfully",
+	})
 }
 
 func logFileHandler(w http.ResponseWriter, r *http.Request) {
@@ -218,18 +361,30 @@ func logFileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load config file location from cache.
-	locationFile, err := os.ReadFile(locationFilePath)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Error reading config location file: %v", err), http.StatusInternalServerError)
-		return
+	// Check if a direct path is provided
+	logPath := r.URL.Query().Get("path")
+	if logPath == "" {
+		// Load config file location from cache.
+		locationFile, err := os.ReadFile(locationFilePath)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error reading config location file: %v", err), http.StatusInternalServerError)
+			return
+		}
+		// The config file path points to <outputDir>/conf.env, we need the parent dir
+		configDir := filepath.Dir(string(locationFile))
+		logPath = filepath.Join(configDir, ".openshift_install.log")
 	}
-	logFile := filepath.Join(string(locationFile), "/.openshift_install.log")
 
 	// Read the contents of the log file
-	fmt.Printf("Reading log file from: %v\n", logFile)
-	fileContents, err := os.ReadFile(logFile)
+	fmt.Printf("Reading log file from: %v\n", logPath)
+	fileContents, err := os.ReadFile(logPath)
 	if err != nil {
+		// Return empty string if log doesn't exist yet (operation just started)
+		if os.IsNotExist(err) {
+			w.Header().Set("Content-Type", "text/plain")
+			io.WriteString(w, "")
+			return
+		}
 		http.Error(w, fmt.Sprintf("Error reading log file: %v", err), http.StatusInternalServerError)
 		return
 	}
