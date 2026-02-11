@@ -17,7 +17,8 @@ services:
       - "8080"
     volumes:
       - $HOME:/root:ro
-      - $HOME/.docker:/root/.docker
+      - $HOME/ocp-instal-tool:/root/ocp-install-tool:rw
+      - $HOME/.docker:/root/.docker:ro
       - /var/run/docker.sock:/var/run/docker.sock
     stdin_open: true
     tty: true
