@@ -19,3 +19,12 @@ show-config:
 	echo "Secret file is: ${pullSecretFile}"
 	echo "SSH public key file is: ${sshPublicKeyFile}"
 
+start:
+	podman compose up --build || docker compose up --build
+
+stop:
+	podman compose down || docker compose down
+
+prune-images:
+	podman compose down --rmi local || docker compose down --rmi local
+
